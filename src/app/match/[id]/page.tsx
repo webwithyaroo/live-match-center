@@ -2,21 +2,7 @@ import MatchDetailClient from "./match-detail-client";
 import { fetchMatchById } from "@/lib/api";
 import { notFound } from "next/navigation";
 import { MatchDetail } from "@/types/match";
-
-function isMatchDetail(data: unknown): data is MatchDetail {
-  if (!data || typeof data !== "object") return false;
-  const obj = data as Record<string, unknown>;
-  return (
-    typeof obj.id === "string" &&
-    typeof obj.homeTeam === "object" &&
-    typeof obj.awayTeam === "object" &&
-    typeof obj.homeScore === "number" &&
-    typeof obj.awayScore === "number" &&
-    typeof obj.status === "string" &&
-    Array.isArray(obj.events) &&
-    typeof obj.statistics === "object"
-  );
-}
+import { isMatchDetail } from "@/lib/type-guards";
 
 export default async function MatchDetailPage({
   params,
