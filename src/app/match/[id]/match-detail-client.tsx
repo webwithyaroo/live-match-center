@@ -2,20 +2,11 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { getSocket } from "@/lib/socket";
-import { MatchDetail, MatchEvent } from "@/types/match";
+import { MatchDetail, MatchEvent, MatchStatus } from "@/types/match";
+import MatchStatistics from "@/components/match-statistics";
 
 type Props = {
   initialMatch: MatchDetail;
-};
-
-// Dark-oriented colors: orange accent
-const eventColors: Record<string, string> = {
-  GOAL: "text-orange-400 font-semibold",
-  YELLOW_CARD: "text-yellow-400",
-  RED_CARD: "text-red-500",
-  FOUL: "text-gray-300",
-  SHOT: "text-blue-300",
-  SUBSTITUTION: "text-purple-300",
 };
 
 type ChatMessage = {
@@ -31,6 +22,7 @@ type ChatMessage = {
 export default function MatchDetailClient({ initialMatch }: Props) {
   const [match, setMatch] = useState<MatchDetail>(initialMatch);
   const [connected, setConnected] = useState(false);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
 
   // Chat state
   const [username, setUsername] = useState<string>(
@@ -58,16 +50,21 @@ export default function MatchDetailClient({ initialMatch }: Props) {
     };
 
     socket.on("connect", () => {
-      console.log("🌐 Socket connected:", socket.id);
       setConnected(true);
+      setConnectionError(null);
       subscribe();
     });
 
-    socket.on("disconnect", () => setConnected(false));
+    socket.on("disconnect", () => {
+      setConnected(false);
+    });
+
+    socket.on("connect_error", (error) => {
+      setConnectionError(error.message || "Connection failed");
+    });
 
     // Initialize match from server payload
     socket.on("subscribed", ({ currentState }: { currentState: MatchDetail }) => {
-      console.log("✅ Subscribed with currentState", currentState);
       setMatch(currentState);
     });
 
@@ -87,8 +84,8 @@ export default function MatchDetailClient({ initialMatch }: Props) {
     });
 
     // Status change
-    socket.on("status_change", (payload: { status: string; minute: number }) => {
-      setMatch(prev => ({ ...prev, status: payload.status as any, minute: payload.minute }));
+    socket.on("status_change", (payload: { status: MatchStatus; minute: number }) => {
+      setMatch(prev => ({ ...prev, status: payload.status, minute: payload.minute }));
     });
 
     // Chat incoming
@@ -96,8 +93,9 @@ export default function MatchDetailClient({ initialMatch }: Props) {
       // dedupe by tempId or exact signature
       setMessages(prev => {
         // if server returned a tempId we can replace pending
-        if ((msg as any).tempId) {
-          const idx = prev.findIndex(m => m.tempId === (msg as any).tempId);
+        const msgTempId = (msg as { tempId?: string }).tempId;
+        if (msgTempId) {
+          const idx = prev.findIndex(m => m.tempId === msgTempId);
           if (idx !== -1) {
             const next = [...prev];
             next[idx] = { ...msg, pending: false };
@@ -140,6 +138,9 @@ export default function MatchDetailClient({ initialMatch }: Props) {
 
     return () => {
       socket.emit("unsubscribe_match", { matchId: match.id });
+      socket.off("connect");
+      socket.off("disconnect");
+      socket.off("connect_error");
       socket.off("subscribed");
       socket.off("score_update");
       socket.off("match_event");
@@ -163,28 +164,24 @@ export default function MatchDetailClient({ initialMatch }: Props) {
     setMessages(prev => [...prev, { ...payload, timestamp: new Date().toISOString(), pending: true, tempId }].slice(-200));
 
     // emit with optional ack - if server supports ack, it can confirm/return final message
-    try {
-      socket.emit("send_message", { ...payload, tempId }, (ack: any) => {
-        if (ack && ack.message) {
-          // server returned canonical message
-          setMessages(prev => {
-            const idx = prev.findIndex(m => m.tempId === tempId);
-            if (idx !== -1) {
-              const next = [...prev];
-              next[idx] = { ...ack.message, pending: false };
-              return next.slice(-200);
-            }
-            // otherwise append if not exists
-            const exists = prev.some(m => m.timestamp === ack.message.timestamp && m.userId === ack.message.userId && m.message === ack.message.message);
-            if (exists) return prev;
-            return [...prev, ack.message].slice(-200);
-          });
-        }
-      });
-    } catch (e) {
-      // if emit failed, keep optimistic message but mark it as not sent (still pending)
-      console.warn("send_message emit failed", e);
-    }
+    socket.emit("send_message", { ...payload, tempId }, (ack?: { message?: ChatMessage }) => {
+      if (ack?.message) {
+        // server returned canonical message
+        setMessages(prev => {
+          const idx = prev.findIndex(m => m.tempId === tempId);
+          if (idx !== -1) {
+            const next = [...prev];
+            next[idx] = { ...ack.message!, pending: false };
+            return next.slice(-200);
+          }
+          // otherwise append if not exists
+          const ackMsg = ack.message!;
+          const exists = prev.some(m => m.timestamp === ackMsg.timestamp && m.userId === ackMsg.userId && m.message === ackMsg.message);
+          if (exists) return prev;
+          return [...prev, ackMsg].slice(-200);
+        });
+      }
+    });
 
     setMessage("");
     // stop typing immediately
@@ -201,14 +198,6 @@ export default function MatchDetailClient({ initialMatch }: Props) {
       socket.emit("typing_stop", { matchId: match.id, userId });
     }, 1500);
   };
-
-  // Group events by minute for display
-  const eventsByMinute = (match.events || []).reduce<Record<number, MatchEvent[]>>((acc, ev) => {
-    const minute = typeof ev.minute === "number" ? ev.minute : 0;
-    if (!acc[minute]) acc[minute] = [];
-    acc[minute].push(ev);
-    return acc;
-  }, {});
 
   // create a flat sorted events array for the timeline feed (preserve order)
   const sortedEvents = (match.events || []).slice().sort((a, b) => {
@@ -249,21 +238,52 @@ export default function MatchDetailClient({ initialMatch }: Props) {
     <main className="min-h-screen bg-black text-gray-100">
       <header className="py-6 bg-orange-600 text-white text-center mb-8 shadow-xl">
         <h1 className="text-5xl max-sm:text-2xl font-black tracking-tighter italic">MATCH CENTER</h1>
+        
+        {/* Connection Status */}
+        <div className="mt-2 flex items-center justify-center gap-2">
+          <div
+            className={`w-2 h-2 rounded-full ${connected ? "bg-green-400" : "bg-red-500"} animate-pulse`}
+            aria-hidden="true"
+          />
+          <span className="text-xs font-medium" role="status" aria-live="polite">
+            {connected ? "Connected" : connectionError ? `Disconnected: ${connectionError}` : "Reconnecting..."}
+          </span>
+        </div>
       </header>
 
       <section className="max-w-5xl mx-auto p-4">
         {/* MATCH HEADER CARD */}
-        <div className="bg-zinc-900 border-l-4 border-orange-600 p-8 rounded-xl mb-12 flex flex-col md:flex-row justify-between items-center shadow-2xl gap-6">
+        <div 
+          className="bg-zinc-900 border-l-4 border-orange-600 p-8 rounded-xl mb-12 flex flex-col md:flex-row justify-between items-center shadow-2xl gap-6"
+          role="region"
+          aria-label="Match Score"
+        >
           <div className="text-center flex-1">
-            <div className="w-20 h-20 bg-white/10 rounded-full mx-auto mb-2 flex items-center justify-center border border-white/20">
+            <div 
+              className="w-20 h-20 bg-white/10 rounded-full mx-auto mb-2 flex items-center justify-center border border-white/20"
+              aria-hidden="true"
+            >
               <span className="text-3xl">{match.homeTeam?.shortName?.[0] ?? '🏟️'}</span>
             </div>
             <h2 className="text-white font-bold text-xl">{match.homeTeam?.name ?? match.homeTeam?.shortName}</h2>
           </div>
 
           <div className="text-center px-8">
-            <div className="text-orange-500 font-mono text-sm mb-2 font-bold tracking-widest uppercase">{(match.status || '').replace('_', ' ')}</div>
-            <div className="text-6xl font-black text-white flex items-center gap-4">
+            <div 
+              className="text-orange-500 font-mono text-sm mb-2 font-bold tracking-widest uppercase"
+              role="timer"
+              aria-live="polite"
+              aria-atomic="true"
+            >
+              {(match.status || '').replace('_', ' ')} {match.minute > 0 && `· ${match.minute}'`}
+            </div>
+            <div 
+              className="text-6xl font-black text-white flex items-center gap-4"
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+              aria-label={`Score: ${match.homeTeam?.shortName} ${match.homeScore}, ${match.awayTeam?.shortName} ${match.awayScore}`}
+            >
               <span>{match.homeScore}</span>
               <span className="text-zinc-700">:</span>
               <span>{match.awayScore}</span>
@@ -271,7 +291,10 @@ export default function MatchDetailClient({ initialMatch }: Props) {
           </div>
 
           <div className="text-center flex-1">
-            <div className="w-20 h-20 bg-white/10 rounded-full mx-auto mb-2 flex items-center justify-center border border-white/20">
+            <div 
+              className="w-20 h-20 bg-white/10 rounded-full mx-auto mb-2 flex items-center justify-center border border-white/20"
+              aria-hidden="true"
+            >
               <span className="text-3xl">{match.awayTeam?.shortName?.[0] ?? '🏟️'}</span>
             </div>
             <h2 className="text-white font-bold text-xl">{match.awayTeam?.name ?? match.awayTeam?.shortName}</h2>
@@ -281,7 +304,11 @@ export default function MatchDetailClient({ initialMatch }: Props) {
         <div className="md:grid md:grid-cols-3 md:gap-6">
           {/* TIMELINE FEED - left/middle */}
           <div className="md:col-span-2">
-            <div className="relative border-l-2 border-zinc-800 ml-4 md:ml-0">
+            <div 
+              className="relative border-l-2 border-zinc-800 ml-4 md:ml-0"
+              role="feed"
+              aria-label="Match Events Timeline"
+            >
               {sortedEvents.length === 0 && (
                 <div className="p-6 bg-zinc-900/40 rounded-lg text-gray-400">No events yet</div>
               )}
@@ -290,7 +317,12 @@ export default function MatchDetailClient({ initialMatch }: Props) {
                 const dotClass = getDotStyle(ev.type);
                 const isLateDrama = ev.minute >= 90 && ev.type && ev.type.includes('GOAL');
                 return (
-                  <div key={ev.id ?? idx} className="mb-10 ml-8 relative">
+                  <article 
+                    key={ev.id ?? idx} 
+                    className="mb-10 ml-8 relative"
+                    role="article"
+                    aria-label={`${ev.type?.replace('_', ' ')} at minute ${ev.minute}`}
+                  >
                     <div className={`absolute -left-[41px] top-0 h-5 w-5 rounded-full ring-4 ring-black ${dotClass} ${isLateDrama ? 'animate-pulse' : ''}`}></div>
 
                     <div className="flex items-center gap-4 text-zinc-400 text-sm mb-1">
@@ -301,7 +333,10 @@ export default function MatchDetailClient({ initialMatch }: Props) {
                     <div className={`bg-zinc-900/50 p-4 rounded-lg border ${ev.type && ev.type.includes('VAR') ? 'border-blue-900/30' : 'border-zinc-800'}`}>
                       <p className="text-white font-bold text-lg">{ev.player ?? ev.description ?? '—'}</p>
                       {ev.assistPlayer && <p className="text-zinc-500 text-sm italic">Assist: {ev.assistPlayer}</p>}
-                      {(ev as any).detail && <p className="text-zinc-500 text-sm mt-1">{(ev as any).detail}</p>}
+                      {(() => {
+                        const detail = (ev as { detail?: string }).detail;
+                        return detail ? <p className="text-zinc-500 text-sm mt-1">{detail}</p> : null;
+                      })()}
 
                       {/* Substitution layout if available */}
                       {ev.type && ev.type.includes('SUBSTITUTION') && (
@@ -317,7 +352,7 @@ export default function MatchDetailClient({ initialMatch }: Props) {
                         </div>
                       )}
                     </div>
-                  </div>
+                  </article>
                 );
               })}
             </div>
@@ -325,24 +360,27 @@ export default function MatchDetailClient({ initialMatch }: Props) {
 
           {/* Right column: Statistics + Chat */}
           <div className="md:col-span-1 mt-6 md:mt-0">
-            <div className="border rounded p-4 bg-zinc-900 shadow-sm mb-6">
-              <h3 className="font-semibold mb-2 text-gray-200">Statistics</h3>
-              <pre className="text-sm text-gray-300">{JSON.stringify(match.statistics, null, 2)}</pre>
-            </div>
+            <MatchStatistics
+              statistics={match.statistics}
+            />
 
-            {/* Chat (reuse existing chat block markup) */}
-            <div className="border rounded p-4 bg-zinc-900 shadow-sm">
+            {/* Chat */}
+            <div className="border rounded p-4 bg-zinc-900 shadow-sm mt-6">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-semibold text-gray-100">Match Chat</h3>
                 <div className="text-xs text-gray-400">Be respectful — stay on-topic</div>
               </div>
 
               <div className="mb-3">
+                <label htmlFor="username-input" className="sr-only">
+                  Your name
+                </label>
                 <input
+                  id="username-input"
                   value={username}
                   onChange={e => setUsername(e.target.value)}
                   placeholder="Your name"
-                  className="w-full bg-zinc-800 placeholder-gray-500 text-gray-100 border border-zinc-700 rounded px-3 py-2 focus:ring-2 focus:ring-orange-400"
+                  className="w-full bg-zinc-800 placeholder-gray-500 text-gray-100 border border-zinc-700 rounded px-3 py-2 focus:ring-2 focus:ring-orange-400 focus:outline-none"
                   aria-label="Your name"
                 />
               </div>
@@ -370,12 +408,16 @@ export default function MatchDetailClient({ initialMatch }: Props) {
               </div>
 
               <div className="flex gap-3 items-start">
+                <label htmlFor="message-input" className="sr-only">
+                  Type your message
+                </label>
                 <textarea
+                  id="message-input"
                   value={message}
                   onChange={e => handleTypingChange(e.target.value)}
                   onKeyDown={handleMessageKeyDown}
                   placeholder={username ? "Type a message (Enter to send, Shift+Enter newline)" : "Set your name to join chat"}
-                  className="flex-1 bg-zinc-800 placeholder-gray-500 text-gray-100 border border-zinc-700 rounded px-3 py-2 h-12 resize-none focus:ring-2 focus:ring-orange-400"
+                  className="flex-1 bg-zinc-800 placeholder-gray-500 text-gray-100 border border-zinc-700 rounded px-3 py-2 h-12 resize-none focus:ring-2 focus:ring-orange-400 focus:outline-none"
                   maxLength={500}
                   aria-label="Message"
                   disabled={!connected}
@@ -383,14 +425,17 @@ export default function MatchDetailClient({ initialMatch }: Props) {
 
                 <button
                   onClick={sendMessage}
-                  className={`px-4 py-2 rounded ${connected && username.trim() && message.trim() ? 'bg-orange-500 text-black' : 'bg-zinc-700 text-gray-400 cursor-not-allowed'}`}
+                  className={`px-4 py-2 rounded font-semibold ${connected && username.trim() && message.trim() ? 'bg-orange-500 hover:bg-orange-600 text-black' : 'bg-zinc-700 text-gray-400 cursor-not-allowed'} transition-colors`}
                   disabled={!connected || !username.trim() || !message.trim()}
+                  aria-label="Send message"
                 >
                   Send
                 </button>
               </div>
 
-              <div className="mt-3 text-xs text-gray-500">Dark theme with orange accent — compact, high-contrast, mobile-friendly.</div>
+              <div className="mt-3 text-xs text-gray-500" role="note">
+                Dark theme with orange accent — compact, high-contrast, mobile-friendly.
+              </div>
             </div>
           </div>
         </div>

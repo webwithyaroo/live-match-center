@@ -1,6 +1,7 @@
 import MatchDetailClient from "./match-detail-client";
 import { fetchMatchById } from "@/lib/api";
 import { notFound } from "next/navigation";
+import { isMatchDetail } from "@/lib/type-guards";
 
 export default async function MatchDetailPage({
   params,
@@ -14,18 +15,27 @@ export default async function MatchDetailPage({
   const res = await fetchMatchById(id);
 
   const match = (() => {
+    if (isMatchDetail(res)) {
+      return res;
+    }
+    
     if (res && typeof res === "object") {
       const r = res as Record<string, unknown>;
       const data = r.data as Record<string, unknown> | undefined;
 
-      if (data && "match" in data) return data.match;
-      if ("match" in r) return r.match;
+      if (data && "match" in data && isMatchDetail(data.match)) {
+        return data.match;
+      }
+      if ("match" in r && isMatchDetail(r.match)) {
+        return r.match;
+      }
     }
-    return res;
+    
+    return null;
   })();
 
   if (!match) return notFound();
 
-  return <MatchDetailClient initialMatch={match as any} />;
+  return <MatchDetailClient initialMatch={match} />;
 }
 
