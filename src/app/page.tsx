@@ -20,9 +20,16 @@ export default async function HomePage() {
               <p className="font-semibold">
                 {match.homeTeam.shortName} vs {match.awayTeam.shortName}
               </p>
-              <p className="text-sm text-gray-500">
-                {match.status.replace("_", " ")} · {match.minute}'
-              </p>
+              <p
+  className={`text-sm ${
+    match.status === "FIRST_HALF" || match.status === "SECOND_HALF"
+      ? "text-green-600 font-medium"
+      : "text-gray-500"
+  }`}
+>
+  {match.status.replace("_", " ")} · {match.minute}
+</p>
+
             </div>
 
             <div className="flex items-center gap-4">
