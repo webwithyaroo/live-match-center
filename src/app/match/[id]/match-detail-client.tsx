@@ -171,12 +171,14 @@ export default function MatchDetailClient({ initialMatch }: Props) {
     // User joined/left chat
     socket.on("user_joined", (payload: { matchId?: string | number; username: string }) => {
       if (payload.matchId && payload.matchId !== match.id) return;
-      setNotifications(prev => [...prev, { type: 'join', username: payload.username, timestamp: new Date().toISOString() }].slice(-50));
+      const notification: ChatNotification = { type: 'join', username: payload.username, timestamp: new Date().toISOString() };
+      setNotifications(prev => [...prev, notification].slice(-50));
     });
 
     socket.on("user_left", (payload: { matchId?: string | number; username: string }) => {
       if (payload.matchId && payload.matchId !== match.id) return;
-      setNotifications(prev => [...prev, { type: 'leave', username: payload.username, timestamp: new Date().toISOString() }].slice(-50));
+      const notification: ChatNotification = { type: 'leave', username: payload.username, timestamp: new Date().toISOString() };
+      setNotifications(prev => [...prev, notification].slice(-50));
     });
 
     return () => {
