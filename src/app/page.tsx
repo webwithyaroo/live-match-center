@@ -24,7 +24,7 @@ const mockMatches: Match[] = [
     awayScore: 1,
     status: "SECOND_HALF",
     minute: 78,
-    league: "Premier League"
+    startTime: new Date().toISOString()
   },
   {
     id: "2",
@@ -44,7 +44,7 @@ const mockMatches: Match[] = [
     awayScore: 0,
     status: "FIRST_HALF",
     minute: 23,
-    league: "Premier League"
+    startTime: new Date().toISOString()
   },
   {
     id: "3",
@@ -64,16 +64,21 @@ const mockMatches: Match[] = [
     awayScore: 2,
     status: "FULL_TIME",
     minute: 90,
-    league: "Premier League"
+    startTime: new Date().toISOString()
   }
 ];
 
-export default async function HomePage() {
+async function getMatches(): Promise<Match[]> {
   try {
     const data = await fetchMatches();
-    return <HomeClient initialMatches={data.matches} />;
-  } catch (error) {
+    return data.matches;
+  } catch {
     // Use mock data when API is unavailable
-    return <HomeClient initialMatches={mockMatches} />;
+    return mockMatches;
   }
+}
+
+export default async function HomePage() {
+  const matches = await getMatches();
+  return <HomeClient initialMatches={matches} />;
 }

@@ -23,7 +23,7 @@ const mockMatchDetail: MatchDetail = {
   awayScore: 1,
   status: "SECOND_HALF",
   minute: 78,
-  league: "Premier League",
+  startTime: new Date().toISOString(),
   events: [
     {
       id: "1",
@@ -31,14 +31,18 @@ const mockMatchDetail: MatchDetail = {
       type: "GOAL",
       player: "Marcus Rashford",
       assistPlayer: "Bruno Fernandes",
-      team: "home"
+      team: "home",
+      description: "Goal",
+      timestamp: new Date().toISOString()
     },
     {
       id: "2",
       minute: 34,
       type: "GOAL",
       player: "Erling Haaland",
-      team: "away"
+      team: "away",
+      description: "Goal",
+      timestamp: new Date().toISOString()
     },
     {
       id: "3",
@@ -46,14 +50,18 @@ const mockMatchDetail: MatchDetail = {
       type: "GOAL",
       player: "Casemiro",
       assistPlayer: "Christian Eriksen",
-      team: "home"
+      team: "home",
+      description: "Goal",
+      timestamp: new Date().toISOString()
     },
     {
       id: "4",
       minute: 45,
       type: "YELLOW_CARD",
       player: "Rodri",
-      team: "away"
+      team: "away",
+      description: "Yellow Card",
+      timestamp: new Date().toISOString()
     }
   ],
   statistics: {
@@ -67,6 +75,33 @@ const mockMatchDetail: MatchDetail = {
   }
 };
 
+async function getMatchDetail(id: string): Promise<MatchDetail | null> {
+  try {
+    const res = await fetchMatchById(id);
+
+    if (isMatchDetail(res)) {
+      return res;
+    }
+    
+    if (res && typeof res === "object") {
+      const r = res as Record<string, unknown>;
+      const data = r.data as Record<string, unknown> | undefined;
+
+      if (data && "match" in data && isMatchDetail(data.match)) {
+        return data.match;
+      }
+      if ("match" in r && isMatchDetail(r.match)) {
+        return r.match;
+      }
+    }
+    
+    return null;
+  } catch {
+    // Use mock data when API is unavailable
+    return mockMatchDetail;
+  }
+}
+
 export default async function MatchDetailPage({
   params,
 }: {
@@ -76,35 +111,10 @@ export default async function MatchDetailPage({
 
   if (!id) return notFound();
 
-  try {
-    const res = await fetchMatchById(id);
+  const match = await getMatchDetail(id);
 
-    const match = (() => {
-      if (isMatchDetail(res)) {
-        return res;
-      }
-      
-      if (res && typeof res === "object") {
-        const r = res as Record<string, unknown>;
-        const data = r.data as Record<string, unknown> | undefined;
+  if (!match) return notFound();
 
-        if (data && "match" in data && isMatchDetail(data.match)) {
-          return data.match;
-        }
-        if ("match" in r && isMatchDetail(r.match)) {
-          return r.match;
-        }
-      }
-      
-      return null;
-    })();
-
-    if (!match) return notFound();
-
-    return <MatchDetailClient initialMatch={match} />;
-  } catch (error) {
-    // Use mock data when API is unavailable
-    return <MatchDetailClient initialMatch={mockMatchDetail} />;
-  }
+  return <MatchDetailClient initialMatch={match} />;
 }
 
