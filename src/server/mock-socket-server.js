@@ -19,122 +19,164 @@ const io = new Server(httpServer, {
   transports: ['websocket', 'polling']
 });
 
-// Match state management
-const matchState = {
-  '1': {
-    id: '1',
-    homeTeam: {
-      id: 'man-utd',
-      name: 'Manchester United',
-      shortName: 'MUN',
-      logo: 'man-utd'
-    },
-    awayTeam: {
-      id: 'liverpool',
-      name: 'Liverpool',
-      shortName: 'LIV',
-      logo: 'liverpool'
-    },
-    homeScore: 1,
-    awayScore: 1,
-    minute: 23,
-    status: 'FIRST_HALF',
-    startTime: new Date().toISOString(),
-    events: [
-      {
-        id: 'evt-1',
-        type: 'GOAL',
-        minute: 12,
-        team: 'home',
-        player: 'Marcus Rashford',
-        assistPlayer: 'Bruno Fernandes',
-        description: 'Goal by Marcus Rashford (assisted by Bruno Fernandes)',
-        timestamp: new Date(Date.now() - 11 * 60000).toISOString()
-      },
-      {
-        id: 'evt-2',
-        type: 'GOAL',
-        minute: 18,
-        team: 'away',
-        player: 'Mohamed Salah',
-        assistPlayer: 'Trent Alexander-Arnold',
-        description: 'Goal by Mohamed Salah (assisted by Trent Alexander-Arnold)',
-        timestamp: new Date(Date.now() - 5 * 60000).toISOString()
-      }
-    ],
-    statistics: {
-      possession: { home: 48, away: 52 },
-      shots: { home: 6, away: 8 },
-      shotsOnTarget: { home: 3, away: 4 },
-      corners: { home: 2, away: 3 },
-      fouls: { home: 4, away: 5 },
-      yellowCards: { home: 0, away: 1 },
-      redCards: { home: 0, away: 0 }
-    }
-  },
-  '2': {
-    id: '2',
-    homeTeam: {
-      id: 'arsenal',
-      name: 'Arsenal',
-      shortName: 'ARS',
-      logo: 'arsenal'
-    },
-    awayTeam: {
-      id: 'chelsea',
-      name: 'Chelsea',
-      shortName: 'CHE',
-      logo: 'chelsea'
-    },
-    homeScore: 2,
-    awayScore: 0,
-    minute: 67,
-    status: 'SECOND_HALF',
-    startTime: new Date(Date.now() - 90 * 60000).toISOString(),
-    events: [
-      {
-        id: 'evt-3',
-        type: 'GOAL',
-        minute: 25,
-        team: 'home',
-        player: 'Bukayo Saka',
-        description: 'Goal by Bukayo Saka',
-        timestamp: new Date(Date.now() - 42 * 60000).toISOString()
-      },
-      {
-        id: 'evt-4',
-        type: 'GOAL',
-        minute: 52,
-        team: 'home',
-        player: 'Gabriel Jesus',
-        assistPlayer: 'Martin Odegaard',
-        description: 'Goal by Gabriel Jesus (assisted by Martin Odegaard)',
-        timestamp: new Date(Date.now() - 15 * 60000).toISOString()
-      }
-    ],
-    statistics: {
-      possession: { home: 62, away: 38 },
-      shots: { home: 14, away: 5 },
-      shotsOnTarget: { home: 7, away: 2 },
-      corners: { home: 6, away: 2 },
-      fouls: { home: 6, away: 9 },
-      yellowCards: { home: 1, away: 2 },
-      redCards: { home: 0, away: 0 }
-    }
+// Team pool for generating realistic match-ups
+const TEAM_POOL = [
+  { id: 'man-utd', name: 'Manchester United', shortName: 'MUN', logo: 'man-utd' },
+  { id: 'man-city', name: 'Manchester City', shortName: 'MCI', logo: 'man-city' },
+  { id: 'liverpool', name: 'Liverpool', shortName: 'LIV', logo: 'liverpool' },
+  { id: 'arsenal', name: 'Arsenal', shortName: 'ARS', logo: 'arsenal' },
+  { id: 'chelsea', name: 'Chelsea', shortName: 'CHE', logo: 'chelsea' },
+  { id: 'tottenham', name: 'Tottenham Hotspur', shortName: 'TOT', logo: 'tottenham' },
+  { id: 'newcastle', name: 'Newcastle United', shortName: 'NEW', logo: 'newcastle' },
+  { id: 'aston-villa', name: 'Aston Villa', shortName: 'AVL', logo: 'aston-villa' },
+  { id: 'west-ham', name: 'West Ham United', shortName: 'WHU', logo: 'west-ham' },
+  { id: 'brighton', name: 'Brighton & Hove Albion', shortName: 'BHA', logo: 'brighton' },
+];
+
+const PLAYER_POOL = [
+  'Marcus Rashford', 'Bruno Fernandes', 'Erling Haaland', 'Kevin De Bruyne',
+  'Mohamed Salah', 'Darwin Nunez', 'Bukayo Saka', 'Martin Odegaard',
+  'Raheem Sterling', 'Cole Palmer', 'Son Heung-min', 'James Maddison',
+  'Alexander Isak', 'Anthony Gordon', 'Ollie Watkins', 'John McGinn',
+  'Diogo Jota', 'Luis Diaz', 'Gabriel Jesus', 'Eddie Nketiah'
+];
+
+// Dynamic match state management - generates on demand
+const matchState = {};
+const chatRooms = {};
+const typingUsers = {};
+
+// Helper function to generate match state dynamically
+function generateMatchState(matchId) {
+  if (matchState[matchId]) {
+    return matchState[matchId];
   }
-};
 
-// Chat rooms management
-const chatRooms = {
-  '1': { users: new Set(), messages: [] },
-  '2': { users: new Set(), messages: [] }
-};
-
-// Typing indicators
-const typingUsers = {
-  '1': new Set(),
-  '2': new Set()
-};
+  console.log(`🎲 Generating dynamic match state for ID: ${matchId}`);
+  
+  // Use ID as seed for deterministic randomness
+  const seed = parseInt(matchId) || matchId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  
+  // Select teams based on seed
+  const homeTeamIndex = seed % TEAM_POOL.length;
+  const awayTeamIndex = (seed * 3 + 5) % TEAM_POOL.length;
+  
+  const homeTeam = TEAM_POOL[homeTeamIndex];
+  const awayTeam = TEAM_POOL[awayTeamIndex === homeTeamIndex ? (awayTeamIndex + 1) % TEAM_POOL.length : awayTeamIndex];
+  
+  // Generate scores (0-3 goals each)
+  const homeScore = Math.floor((seed * 7) % 4);
+  const awayScore = Math.floor((seed * 11) % 4);
+  
+  // Determine match status
+  const statusOptions = ['FIRST_HALF', 'SECOND_HALF', 'HALF_TIME'];
+  const status = statusOptions[seed % statusOptions.length];
+  
+  // Generate minute based on status
+  let minute = 0;
+  if (status === 'FIRST_HALF') minute = 15 + (seed % 30);
+  else if (status === 'HALF_TIME') minute = 45;
+  else if (status === 'SECOND_HALF') minute = 46 + (seed % 44);
+  
+  // Generate events based on goals scored
+  const events = [];
+  let eventId = 1;
+  
+  // Add goal events for home team
+  for (let i = 0; i < homeScore; i++) {
+    const maxMinute = Math.max(1, minute - 1);
+    const goalMinute = minute > 10
+      ? Math.floor(10 + ((seed + i * 17) % (minute - 10)))
+      : Math.floor(1 + ((seed + i * 17) % maxMinute));
+    const playerIndex = (seed + i * 3) % PLAYER_POOL.length;
+    const assistIndex = (seed + i * 5 + 1) % PLAYER_POOL.length;
+    
+    events.push({
+      id: `evt-${matchId}-${eventId++}`,
+      type: 'GOAL',
+      minute: goalMinute,
+      team: 'home',
+      player: PLAYER_POOL[playerIndex],
+      assistPlayer: assistIndex !== playerIndex ? PLAYER_POOL[assistIndex] : undefined,
+      description: `Goal by ${PLAYER_POOL[playerIndex]}`,
+      timestamp: new Date(Date.now() - (minute - goalMinute) * 60000).toISOString()
+    });
+  }
+  
+  // Add goal events for away team
+  for (let i = 0; i < awayScore; i++) {
+    const maxMinute = Math.max(1, minute - 1);
+    const goalMinute = minute > 10
+      ? Math.floor(10 + ((seed + i * 23) % (minute - 10)))
+      : Math.floor(1 + ((seed + i * 23) % maxMinute));
+    const playerIndex = (seed + i * 7) % PLAYER_POOL.length;
+    const assistIndex = (seed + i * 11 + 1) % PLAYER_POOL.length;
+    
+    events.push({
+      id: `evt-${matchId}-${eventId++}`,
+      type: 'GOAL',
+      minute: goalMinute,
+      team: 'away',
+      player: PLAYER_POOL[playerIndex],
+      assistPlayer: assistIndex !== playerIndex ? PLAYER_POOL[assistIndex] : undefined,
+      description: `Goal by ${PLAYER_POOL[playerIndex]}`,
+      timestamp: new Date(Date.now() - (minute - goalMinute) * 60000).toISOString()
+    });
+  }
+  
+  // Sort events by minute
+  events.sort((a, b) => a.minute - b.minute);
+  
+  const match = {
+    id: matchId,
+    homeTeam,
+    awayTeam,
+    homeScore,
+    awayScore,
+    minute,
+    status,
+    startTime: new Date(Date.now() - minute * 60000).toISOString(),
+    events,
+    statistics: {
+      possession: { 
+        home: 40 + (seed % 20), 
+        away: 60 - (seed % 20)
+      },
+      shots: { 
+        home: 5 + (seed % 10), 
+        away: 8 + ((seed * 3) % 10) 
+      },
+      shotsOnTarget: { 
+        home: 2 + (seed % 5), 
+        away: 3 + ((seed * 3) % 5) 
+      },
+      corners: { 
+        home: 2 + (seed % 6), 
+        away: 3 + ((seed * 3) % 6) 
+      },
+      fouls: { 
+        home: 8 + (seed % 8), 
+        away: 6 + ((seed * 3) % 8) 
+      },
+      yellowCards: { home: 0, away: 0 },
+      redCards: { home: 0, away: 0 }
+    }
+  };
+  
+  matchState[matchId] = match;
+  
+  // Initialize chat room and typing users for this match
+  if (!chatRooms[matchId]) {
+    chatRooms[matchId] = { users: new Set(), messages: [] };
+  }
+  if (!typingUsers[matchId]) {
+    typingUsers[matchId] = new Set();
+  }
+  
+  console.log(`✅ Generated match: ${homeTeam.shortName} ${homeScore} - ${awayScore} ${awayTeam.shortName} (${status}, ${minute}')`);
+  
+  return match;
+}
 
 // Helper function to generate random event
 function generateRandomEvent(matchId) {
@@ -258,15 +300,16 @@ io.on('connection', (socket) => {
   console.log(`✅ Client connected: ${socket.id}`);
 
   // Handle match subscription
-  socket.on('subscribe_match', (matchId) => {
+  socket.on('subscribe_match', (data) => {
+    const matchId = typeof data === 'object' ? data.matchId : data;
     console.log(`📺 Client ${socket.id} subscribed to match ${matchId}`);
     socket.join(`match_${matchId}`);
     
+    // Generate or get match state
+    const match = generateMatchState(matchId);
+    
     // Send current match state
-    const match = matchState[matchId];
-    if (match) {
-      socket.emit('subscribed', { currentState: match });
-    }
+    socket.emit('subscribed', { currentState: match });
   });
 
   // Handle unsubscribe
@@ -320,6 +363,10 @@ io.on('connection', (socket) => {
   socket.on('send_message', ({ matchId, username, message }, callback) => {
     console.log(`💬 Message from ${username} in match ${matchId}: ${message}`);
     
+    if (!chatRooms[matchId]) {
+      chatRooms[matchId] = { users: new Set(), messages: [] };
+    }
+    
     const chatMessage = {
       id: `msg-${Date.now()}-${Math.random()}`,
       matchId,
@@ -328,9 +375,7 @@ io.on('connection', (socket) => {
       timestamp: new Date().toISOString()
     };
     
-    if (chatRooms[matchId]) {
-      chatRooms[matchId].messages.push(chatMessage);
-    }
+    chatRooms[matchId].messages.push(chatMessage);
     
     // Broadcast to all users in the chat room (including sender)
     io.to(`chat_${matchId}`).emit('chat_message', chatMessage);
@@ -433,11 +478,8 @@ httpServer.listen(PORT, () => {
   console.log(`\n🚀 Mock Socket.IO Server running on port ${PORT}`);
   console.log(`📡 WebSocket endpoint: ws://localhost:${PORT}`);
   console.log(`🔗 CORS enabled for: ${CORS_ORIGIN}`);
-  console.log(`\n📊 Simulating ${Object.keys(matchState).length} live matches:`);
-  
-  Object.values(matchState).forEach(match => {
-    console.log(`   • ${match.homeTeam.shortName} ${match.homeScore} - ${match.awayScore} ${match.awayTeam.shortName} (${match.status})`);
-  });
+  console.log(`\n🎲 Dynamic match generation enabled - supports ANY match ID!`);
+  console.log(`   Match states are generated on-demand when clients subscribe`);
   
   console.log('\n✨ Real-time updates active:');
   console.log('   • Score updates every 5s');
