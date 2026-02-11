@@ -86,8 +86,8 @@ export default function MatchDetailClient({ initialMatch }: Props) {
     const subscribe = () => {
       socket.emit("subscribe_match", { matchId: match.id });
       // Rejoin chat if user was previously in chat
-      if (hasJoinedChatRef.current && username) {
-        socket.emit("join_chat", { matchId: match.id, userId, username });
+      if (hasJoinedChatRef.current && usernameRef.current) {
+        socket.emit("join_chat", { matchId: match.id, userId, username: usernameRef.current });
       }
     };
 
