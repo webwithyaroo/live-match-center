@@ -194,7 +194,7 @@ export default function MatchDetailClient({ initialMatch }: Props) {
     socket.on("chat_history", (payload: { matchId?: string | number; messages: ChatMessage[] }) => {
       if (payload.matchId && payload.matchId !== match.id) return;
       setMessages(payload.messages || []);
-      // Auto-scroll to bottom after loading history
+      // Auto-scroll to bottom after loading history (wait for React to render messages)
       setTimeout(() => {
         if (chatContainerRef.current) {
           chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
