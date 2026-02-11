@@ -84,7 +84,10 @@ function generateMatchState(matchId) {
   
   // Add goal events for home team
   for (let i = 0; i < homeScore; i++) {
-    const goalMinute = Math.floor(10 + ((seed + i * 17) % Math.max(minute - 10, 1)));
+    const maxMinute = Math.max(1, minute - 1);
+    const goalMinute = minute > 10
+      ? Math.floor(10 + ((seed + i * 17) % (minute - 10)))
+      : Math.floor(1 + ((seed + i * 17) % maxMinute));
     const playerIndex = (seed + i * 3) % PLAYER_POOL.length;
     const assistIndex = (seed + i * 5 + 1) % PLAYER_POOL.length;
     
@@ -102,7 +105,10 @@ function generateMatchState(matchId) {
   
   // Add goal events for away team
   for (let i = 0; i < awayScore; i++) {
-    const goalMinute = Math.floor(10 + ((seed + i * 23) % Math.max(minute - 10, 1)));
+    const maxMinute = Math.max(1, minute - 1);
+    const goalMinute = minute > 10
+      ? Math.floor(10 + ((seed + i * 23) % (minute - 10)))
+      : Math.floor(1 + ((seed + i * 23) % maxMinute));
     const playerIndex = (seed + i * 7) % PLAYER_POOL.length;
     const assistIndex = (seed + i * 11 + 1) % PLAYER_POOL.length;
     
