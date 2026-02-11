@@ -72,14 +72,14 @@ export default function HomeClient({ initialMatches }: Props) {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#0E0E10]">
       <Header connected={connected} />
       
       <main>
-        <Container maxWidth="lg" className="py-6">
-          <div className="mb-6">
-            <h2 className="text-h2 text-gray-900 mb-2">Live Matches</h2>
-            <p className="text-body-sm text-gray-600">
+        <Container maxWidth="lg" className="py-8">
+          <div className="mb-8">
+            <h2 className="text-h1 text-white mb-2">Live Matches</h2>
+            <p className="text-body text-[#9E9E9E]">
               Follow your favorite matches in real-time with live scores and updates
             </p>
           </div>
@@ -90,12 +90,12 @@ export default function HomeClient({ initialMatches }: Props) {
             ))}
             
             {matches.length === 0 && (
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
-                <div className="text-4xl mb-3">⚽</div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              <div className="bg-[#1A1A1C] rounded-lg border border-[#2C2C2E] p-12 text-center">
+                <div className="text-6xl mb-4">⚽</div>
+                <h3 className="text-xl font-bold text-white mb-2">
                   No Live Matches
                 </h3>
-                <p className="text-gray-600">
+                <p className="text-[#9E9E9E]">
                   Check back later for live football matches
                 </p>
               </div>

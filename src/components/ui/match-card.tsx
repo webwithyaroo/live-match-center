@@ -11,7 +11,7 @@ type MatchCardProps = {
 /**
  * MatchCard Component
  * 
- * Professional match card with team logos, scores, and status
+ * Premium match card with dark theme and orange accents
  */
 export default function MatchCard({ match, league = "Premier League" }: MatchCardProps) {
   const isLive = match.status === "FIRST_HALF" || match.status === "SECOND_HALF";
@@ -23,14 +23,14 @@ export default function MatchCard({ match, league = "Premier League" }: MatchCar
       aria-label={`View details for ${match.homeTeam.shortName} vs ${match.awayTeam.shortName}`}
     >
       <div 
-        className={`match-card bg-white rounded-lg shadow-sm border border-gray-200 hover:border-orange-400 overflow-hidden ${
-          isLive ? "ring-2 ring-red-500" : ""
+        className={`match-card bg-[#1A1A1C] rounded-lg border border-[#2C2C2E] overflow-hidden ${
+          isLive ? "border-l-4 border-l-[#FF5500]" : ""
         }`}
       >
         {/* League Header */}
-        <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-2 flex items-center justify-between border-b border-gray-200">
+        <div className="bg-[#0E0E10] px-4 py-2 flex items-center justify-between border-b border-[#2C2C2E]">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
+            <span className="text-xs font-medium text-[#9E9E9E] uppercase tracking-wider">
               {league}
             </span>
           </div>
@@ -43,22 +43,22 @@ export default function MatchCard({ match, league = "Premier League" }: MatchCar
             {/* Home Team */}
             <div className="flex items-center gap-3 flex-1 min-w-0">
               <TeamBadge team={match.homeTeam} size="md" />
-              <span className="font-semibold text-gray-900 truncate">
+              <span className="font-medium text-white truncate">
                 {match.homeTeam.shortName}
               </span>
             </div>
             
             {/* Score */}
-            <div className="flex items-center gap-2 px-4">
+            <div className="flex items-center gap-3 px-4">
               <span 
-                className="text-2xl font-bold text-gray-900"
+                className="text-[32px] font-bold text-white leading-none"
                 aria-label="Score"
               >
                 {match.homeScore}
               </span>
-              <span className="text-gray-400 font-semibold">:</span>
+              <span className="text-[#666666] font-semibold text-xl">:</span>
               <span 
-                className="text-2xl font-bold text-gray-900"
+                className="text-[32px] font-bold text-white leading-none"
               >
                 {match.awayScore}
               </span>
@@ -66,7 +66,7 @@ export default function MatchCard({ match, league = "Premier League" }: MatchCar
             
             {/* Away Team */}
             <div className="flex items-center gap-3 flex-1 min-w-0 justify-end">
-              <span className="font-semibold text-gray-900 truncate">
+              <span className="font-medium text-white truncate">
                 {match.awayTeam.shortName}
               </span>
               <TeamBadge team={match.awayTeam} size="md" />
@@ -74,16 +74,16 @@ export default function MatchCard({ match, league = "Premier League" }: MatchCar
           </div>
           
           {/* Match Status Footer */}
-          <div className="mt-3 flex items-center justify-between text-sm">
+          <div className="mt-4 flex items-center justify-between text-sm">
             <span 
               className={`${
-                isLive ? "text-orange-600 font-semibold" : "text-gray-500"
+                isLive ? "text-[#FF5500] font-medium" : "text-[#9E9E9E]"
               }`}
             >
               {match.minute > 0 ? `${match.minute}'` : ""} 
-              {isLive && " • " + league}
+              {isLive && match.minute > 0 && " • " + league}
             </span>
-            <span className="text-orange-600 hover:text-orange-700 font-medium flex items-center gap-1">
+            <span className="text-[#FF5500] hover:text-[#FF8800] font-medium flex items-center gap-1 transition-colors">
               View
               <svg 
                 className="w-4 h-4" 
