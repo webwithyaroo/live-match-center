@@ -1,54 +1,5 @@
 import { MatchStats } from "@/types/match";
-
-type StatRowProps = {
-  label: string;
-  homeValue: number;
-  awayValue: number;
-  showAsPercentage?: boolean;
-  icon?: string;
-};
-
-function StatRow({ label, homeValue, awayValue, showAsPercentage, icon }: StatRowProps) {
-  const total = homeValue + awayValue || 1; // Avoid division by zero
-  const homePercentage = (homeValue / total) * 100;
-  const awayPercentage = (awayValue / total) * 100;
-
-  return (
-    <div className="mb-4">
-      <div className="flex justify-between items-center mb-2">
-        <div className="flex items-center gap-2">
-          {icon && <span className="text-gray-400" aria-hidden="true">{icon}</span>}
-          <span className="text-sm font-medium text-gray-300">{label}</span>
-        </div>
-      </div>
-      
-      <div className="flex items-center gap-3 mb-1">
-        <span className="text-white font-bold w-10 text-right">
-          {homeValue}{showAsPercentage ? '%' : ''}
-        </span>
-        
-        <div className="flex-1 h-2 bg-zinc-800 rounded-full overflow-hidden">
-          <div className="flex h-full">
-            <div
-              className="bg-orange-500 transition-all duration-300"
-              style={{ width: `${homePercentage}%` }}
-              aria-label={`${homePercentage.toFixed(0)}%`}
-            />
-            <div
-              className="bg-blue-500 transition-all duration-300"
-              style={{ width: `${awayPercentage}%` }}
-              aria-label={`${awayPercentage.toFixed(0)}%`}
-            />
-          </div>
-        </div>
-        
-        <span className="text-white font-bold w-10 text-left">
-          {awayValue}{showAsPercentage ? '%' : ''}
-        </span>
-      </div>
-    </div>
-  );
-}
+import StatBar from "./ui/stat-bar";
 
 type MatchStatisticsProps = {
   statistics: MatchStats;
@@ -89,7 +40,7 @@ export default function MatchStatistics({
       </h3>
 
       <div className="space-y-1">
-        <StatRow
+        <StatBar
           label="Possession"
           homeValue={statistics.possession.home}
           awayValue={statistics.possession.away}
@@ -97,42 +48,42 @@ export default function MatchStatistics({
           icon="⚽"
         />
         
-        <StatRow
+        <StatBar
           label="Shots"
           homeValue={statistics.shots.home}
           awayValue={statistics.shots.away}
           icon="🎯"
         />
         
-        <StatRow
+        <StatBar
           label="Shots on Target"
           homeValue={statistics.shotsOnTarget.home}
           awayValue={statistics.shotsOnTarget.away}
           icon="🎯"
         />
         
-        <StatRow
+        <StatBar
           label="Corners"
           homeValue={statistics.corners.home}
           awayValue={statistics.corners.away}
           icon="🚩"
         />
         
-        <StatRow
+        <StatBar
           label="Fouls"
           homeValue={statistics.fouls.home}
           awayValue={statistics.fouls.away}
           icon="⚠️"
         />
         
-        <StatRow
+        <StatBar
           label="Yellow Cards"
           homeValue={statistics.yellowCards.home}
           awayValue={statistics.yellowCards.away}
           icon="🟨"
         />
         
-        <StatRow
+        <StatBar
           label="Red Cards"
           homeValue={statistics.redCards.home}
           awayValue={statistics.redCards.away}
