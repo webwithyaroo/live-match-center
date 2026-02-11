@@ -22,7 +22,7 @@ export default function StatBar({
   showAsPercentage = false,
   icon 
 }: StatBarProps) {
-  const total = homeValue + awayValue || 1;
+  const total = Math.max(homeValue + awayValue, 1); // Ensure at least 1 to avoid division by zero
   const homePercentage = (homeValue / total) * 100;
   const awayPercentage = (awayValue / total) * 100;
   

@@ -206,11 +206,11 @@ export default function MatchDetailClient({ initialMatch }: Props) {
     }, 1500);
   };
 
-  // create a flat sorted events array for the timeline feed (preserve order)
+  // create a flat sorted events array for the timeline feed (descending order - newest first)
   const sortedEvents = (match.events || []).slice().sort((a, b) => {
     const ma = typeof a.minute === 'number' ? a.minute : 0;
     const mb = typeof b.minute === 'number' ? b.minute : 0;
-    if (ma !== mb) return mb - ma; // Latest first
+    if (ma !== mb) return mb - ma; // Descending order (newest events first)
     return (b.id ?? '').toString().localeCompare((a.id ?? '').toString());
   });
 

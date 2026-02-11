@@ -1,4 +1,7 @@
+"use client";
+
 import { Team } from "@/types/match";
+import { useState } from "react";
 
 type TeamBadgeProps = {
   team: Team;
@@ -23,6 +26,7 @@ const sizeClasses = {
  * 3. Fallback to team initials in gradient circle
  */
 export default function TeamBadge({ team, size = "md", showName = false, className = "" }: TeamBadgeProps) {
+  const [imageError, setImageError] = useState(false);
   const sizeClass = sizeClasses[size];
   
   // Generate team initials from shortName or name
@@ -43,26 +47,18 @@ export default function TeamBadge({ team, size = "md", showName = false, classNa
         className={`${sizeClass} rounded-full flex items-center justify-center bg-gradient-to-br from-orange-400 to-orange-600 text-white font-bold overflow-hidden flex-shrink-0 border-2 border-white/20 shadow-md`}
         aria-hidden="true"
       >
-        {logoUrl ? (
+        {!imageError && logoUrl ? (
           <img 
             src={logoUrl}
             alt={`${team.name} logo`}
             className="w-full h-full object-cover"
-            onError={(e) => {
-              // Fallback to initials on error
-              e.currentTarget.style.display = 'none';
-              if (e.currentTarget.nextSibling) {
-                (e.currentTarget.nextSibling as HTMLElement).style.display = 'flex';
-              }
-            }}
+            onError={() => setImageError(true)}
           />
-        ) : null}
-        <span 
-          className="hidden w-full h-full items-center justify-center"
-          style={{ display: logoUrl ? 'none' : 'flex' }}
-        >
-          {initials}
-        </span>
+        ) : (
+          <span className="flex items-center justify-center w-full h-full">
+            {initials}
+          </span>
+        )}
       </div>
       {showName && (
         <span className="font-semibold text-sm truncate">

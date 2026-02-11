@@ -113,8 +113,11 @@ body {
   line-height: 1.4;
 }
 
-/* Smooth transitions */
-* {
+/* Smooth transitions - applied to common interactive elements */
+button,
+a,
+.match-card,
+.transition-smooth {
   transition-property: color, background-color, border-color, opacity, transform;
   transition-duration: 150ms;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
