@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { getSocket } from "@/lib/socket";
 import { MatchDetail, MatchEvent, MatchStatus } from "@/types/match";
-import MatchStatistics from "@/components/match-statistics";
+import MatchGraphs from "@/components/match-graphs";
 import Header from "@/components/layout/header";
 import Container from "@/components/layout/container";
 import TeamBadge from "@/components/ui/team-badge";
@@ -475,7 +475,11 @@ export default function MatchDetailClient({ initialMatch }: Props) {
         {/* Statistics Tab */}
         {activeTab === "statistics" && (
           <div className="max-w-3xl mx-auto">
-            <MatchStatistics statistics={match.statistics} />
+            <MatchGraphs 
+              statistics={match.statistics}
+              homeTeamShort={match.homeTeam.shortName}
+              awayTeamShort={match.awayTeam.shortName}
+            />
           </div>
         )}
         
@@ -574,7 +578,7 @@ export default function MatchDetailClient({ initialMatch }: Props) {
                   value={message}
                   onChange={e => handleTypingChange(e.target.value)}
                   onKeyDown={handleMessageKeyDown}
-                  placeholder={username ? "Type a message (Enter to send)" : "Set your name first"}
+                  placeholder={username ? "Type a message..." : "Set your name first"}
                   className="flex-1 bg-[#0E0E10] placeholder-[#666666] text-white border border-[#2C2C2E] rounded-lg px-4 py-3 h-12 resize-none focus:ring-2 focus:ring-[#FF5500] focus:border-[#FF5500] focus:outline-none transition-all"
                   maxLength={500}
                   aria-label="Message"
