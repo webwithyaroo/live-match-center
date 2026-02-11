@@ -28,7 +28,6 @@ type TabType = "overview" | "statistics" | "chat";
 export default function MatchDetailClient({ initialMatch }: Props) {
   const [match, setMatch] = useState<MatchDetail>(initialMatch);
   const [connected, setConnected] = useState(false);
-  const [connectionError, setConnectionError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>("overview");
 
   // Chat state
@@ -58,16 +57,11 @@ export default function MatchDetailClient({ initialMatch }: Props) {
 
     socket.on("connect", () => {
       setConnected(true);
-      setConnectionError(null);
       subscribe();
     });
 
     socket.on("disconnect", () => {
       setConnected(false);
-    });
-
-    socket.on("connect_error", (error) => {
-      setConnectionError(error.message || "Connection failed");
     });
 
     // Initialize match from server payload
@@ -147,7 +141,6 @@ export default function MatchDetailClient({ initialMatch }: Props) {
       socket.emit("unsubscribe_match", { matchId: match.id });
       socket.off("connect");
       socket.off("disconnect");
-      socket.off("connect_error");
       socket.off("subscribed");
       socket.off("score_update");
       socket.off("match_event");
@@ -240,8 +233,6 @@ export default function MatchDetailClient({ initialMatch }: Props) {
       sendMessage();
     }
   };
-
-  const isLive = match.status === "FIRST_HALF" || match.status === "SECOND_HALF";
 
   return (
     <div className="min-h-screen bg-gray-50">

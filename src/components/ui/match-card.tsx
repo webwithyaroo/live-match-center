@@ -5,7 +5,6 @@ import LiveIndicator from "./live-indicator";
 
 type MatchCardProps = {
   match: Match;
-  variant?: "compact" | "full";
   league?: string;
 };
 
@@ -14,7 +13,7 @@ type MatchCardProps = {
  * 
  * Professional match card with team logos, scores, and status
  */
-export default function MatchCard({ match, variant = "full", league = "Premier League" }: MatchCardProps) {
+export default function MatchCard({ match, league = "Premier League" }: MatchCardProps) {
   const isLive = match.status === "FIRST_HALF" || match.status === "SECOND_HALF";
   
   return (
