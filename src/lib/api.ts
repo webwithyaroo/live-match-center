@@ -15,11 +15,15 @@ export async function fetchLiveMatches() {
   if (!res.ok) throw new Error("Failed to fetch live matches");
   return res.json();
 }
-
 export async function fetchMatchById(id: string) {
   const res = await fetch(`${API_BASE}/api/matches/${id}`, {
     cache: "no-store",
   });
-  if (!res.ok) throw new Error("Failed to fetch match");
+
+  if (!res.ok) {
+    return null;
+  }
+
   return res.json();
 }
+
