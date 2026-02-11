@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { MatchDetail } from "@/types/match";
+import MatchNotFound from "./not-found";
+
 
 type Props = {
   initialMatch: MatchDetail;
@@ -9,6 +11,10 @@ type Props = {
 
 export default function MatchDetailClient({ initialMatch }: Props) {
   const [match, setMatch] = useState(initialMatch);
+
+  if (!match) {
+    return <MatchNotFound />;
+  }
 
   return (
     <main className="max-w-3xl mx-auto p-4 space-y-4">

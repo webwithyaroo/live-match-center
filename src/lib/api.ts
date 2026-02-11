@@ -20,10 +20,12 @@ export async function fetchMatchById(id: string) {
     cache: "no-store",
   });
 
+  const data = await res.json();
+
   if (!res.ok) {
-    return null;
+    console.error("Match fetch failed:", data);
+    return null; 
   }
 
-  return res.json();
+  return data.data ?? null;
 }
-
