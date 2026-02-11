@@ -8,17 +8,33 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
-  Cell
+  TooltipProps
 } from 'recharts';
-import { Activity, Target, Flag, AlertTriangle, Square } from "lucide-react";
+import { Activity, Target, Flag, Square } from "lucide-react";
 
 type MatchGraphsProps = {
   statistics: MatchStats;
   homeTeamShort?: string;
   awayTeamShort?: string;
 };
+
+// Custom tooltip component (defined outside render)
+function CustomTooltip({ active, payload, label }: TooltipProps<number, string>) {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-[#1A1A1C] border border-[#2C2C2E] rounded-lg p-3 shadow-lg">
+        <p className="text-white font-semibold mb-2">{label}</p>
+        {payload.map((entry, index) => (
+          <p key={index} style={{ color: entry.color }} className="text-sm">
+            {entry.name}: {entry.value}
+          </p>
+        ))}
+      </div>
+    );
+  }
+  return null;
+}
 
 /**
  * MatchGraphs Component
@@ -31,23 +47,6 @@ export default function MatchGraphs({
   homeTeamShort = "Home",
   awayTeamShort = "Away"
 }: MatchGraphsProps) {
-
-  // Custom tooltip styling
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-[#1A1A1C] border border-[#2C2C2E] rounded-lg p-3 shadow-lg">
-          <p className="text-white font-semibold mb-2">{label}</p>
-          {payload.map((entry: any, index: number) => (
-            <p key={index} style={{ color: entry.color }} className="text-sm">
-              {entry.name}: {entry.value}
-            </p>
-          ))}
-        </div>
-      );
-    }
-    return null;
-  };
 
   // Prepare data for possession chart
   const possessionData = [
