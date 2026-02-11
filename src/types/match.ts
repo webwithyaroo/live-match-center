@@ -4,6 +4,9 @@ export type Team = {
   id: string;
   name: string;
   shortName: string;
+  logo?: string;        // Team logo URL or identifier
+  logoUrl?: string;     // Full URL to team logo
+  primaryColor?: string; // Team primary color for dynamic theming
 };
 
 export type MatchStatus =

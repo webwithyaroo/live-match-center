@@ -4,6 +4,10 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { getSocket } from "@/lib/socket";
 import { MatchDetail, MatchEvent, MatchStatus } from "@/types/match";
 import MatchStatistics from "@/components/match-statistics";
+import Header from "@/components/layout/header";
+import Container from "@/components/layout/container";
+import TeamBadge from "@/components/ui/team-badge";
+import LiveIndicator from "@/components/ui/live-indicator";
 
 type Props = {
   initialMatch: MatchDetail;
@@ -19,10 +23,12 @@ type ChatMessage = {
   tempId?: string;
 };
 
+type TabType = "overview" | "statistics" | "chat";
+
 export default function MatchDetailClient({ initialMatch }: Props) {
   const [match, setMatch] = useState<MatchDetail>(initialMatch);
   const [connected, setConnected] = useState(false);
-  const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<TabType>("overview");
 
   // Chat state
   const [username, setUsername] = useState<string>(
@@ -51,16 +57,11 @@ export default function MatchDetailClient({ initialMatch }: Props) {
 
     socket.on("connect", () => {
       setConnected(true);
-      setConnectionError(null);
       subscribe();
     });
 
     socket.on("disconnect", () => {
       setConnected(false);
-    });
-
-    socket.on("connect_error", (error) => {
-      setConnectionError(error.message || "Connection failed");
     });
 
     // Initialize match from server payload
@@ -140,7 +141,6 @@ export default function MatchDetailClient({ initialMatch }: Props) {
       socket.emit("unsubscribe_match", { matchId: match.id });
       socket.off("connect");
       socket.off("disconnect");
-      socket.off("connect_error");
       socket.off("subscribed");
       socket.off("score_update");
       socket.off("match_event");
@@ -199,12 +199,12 @@ export default function MatchDetailClient({ initialMatch }: Props) {
     }, 1500);
   };
 
-  // create a flat sorted events array for the timeline feed (preserve order)
+  // create a flat sorted events array for the timeline feed (descending order - newest first)
   const sortedEvents = (match.events || []).slice().sort((a, b) => {
     const ma = typeof a.minute === 'number' ? a.minute : 0;
     const mb = typeof b.minute === 'number' ? b.minute : 0;
-    if (ma !== mb) return ma - mb;
-    return (a.id ?? '').toString().localeCompare((b.id ?? '').toString());
+    if (ma !== mb) return mb - ma; // Descending order (newest events first)
+    return (b.id ?? '').toString().localeCompare((a.id ?? '').toString());
   });
 
   const getDotStyle = (type?: string) => {
@@ -213,7 +213,7 @@ export default function MatchDetailClient({ initialMatch }: Props) {
     if (type.includes('YELLOW')) return 'bg-yellow-400';
     if (type.includes('RED')) return 'bg-red-500';
     if (type.includes('VAR')) return 'bg-blue-500';
-    if (type.includes('SUBSTITUTION')) return 'bg-green-500';
+    if (type.includes('SUBSTITUTION')) return 'bg-purple-500';
     return 'bg-zinc-700';
   };
 
@@ -235,143 +235,187 @@ export default function MatchDetailClient({ initialMatch }: Props) {
   };
 
   return (
-    <main className="min-h-screen bg-black text-gray-100">
-      <header className="py-6 bg-orange-600 text-white text-center mb-8 shadow-xl">
-        <h1 className="text-5xl max-sm:text-2xl font-black tracking-tighter italic">MATCH CENTER</h1>
-        
-        {/* Connection Status */}
-        <div className="mt-2 flex items-center justify-center gap-2">
-          <div
-            className={`w-2 h-2 rounded-full ${connected ? "bg-green-400" : "bg-red-500"} animate-pulse`}
-            aria-hidden="true"
-          />
-          <span className="text-xs font-medium" role="status" aria-live="polite">
-            {connected ? "Connected" : connectionError ? `Disconnected: ${connectionError}` : "Reconnecting..."}
-          </span>
-        </div>
-      </header>
-
-      <section className="max-w-5xl mx-auto p-4">
-        {/* MATCH HEADER CARD */}
-        <div 
-          className="bg-zinc-900 border-l-4 border-orange-600 p-8 rounded-xl mb-12 flex flex-col md:flex-row justify-between items-center shadow-2xl gap-6"
-          role="region"
-          aria-label="Match Score"
-        >
-          <div className="text-center flex-1">
-            <div 
-              className="w-20 h-20 bg-white/10 rounded-full mx-auto mb-2 flex items-center justify-center border border-white/20"
-              aria-hidden="true"
-            >
-              <span className="text-3xl">{match.homeTeam?.shortName?.[0] ?? '🏟️'}</span>
+    <div className="min-h-screen bg-gray-50">
+      <Header showBack connected={connected} />
+      
+      {/* Compact Match Header */}
+      <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white">
+        <Container maxWidth="xl">
+          <div className="py-6 sm:py-8">
+            {/* Teams and Score */}
+            <div className="flex items-center justify-center gap-4 sm:gap-8 mb-4">
+              {/* Home Team */}
+              <div className="flex flex-col items-center flex-1 max-w-[150px]">
+                <TeamBadge team={match.homeTeam} size="xl" />
+                <h2 className="text-base sm:text-lg font-bold mt-2 text-center">
+                  {match.homeTeam.shortName}
+                </h2>
+              </div>
+              
+              {/* Score */}
+              <div className="flex flex-col items-center px-4">
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <span className="text-4xl sm:text-5xl font-black">{match.homeScore}</span>
+                  <span className="text-2xl sm:text-3xl text-white/60">:</span>
+                  <span className="text-4xl sm:text-5xl font-black">{match.awayScore}</span>
+                </div>
+              </div>
+              
+              {/* Away Team */}
+              <div className="flex flex-col items-center flex-1 max-w-[150px]">
+                <TeamBadge team={match.awayTeam} size="xl" />
+                <h2 className="text-base sm:text-lg font-bold mt-2 text-center">
+                  {match.awayTeam.shortName}
+                </h2>
+              </div>
             </div>
-            <h2 className="text-white font-bold text-xl">{match.homeTeam?.name ?? match.homeTeam?.shortName}</h2>
-          </div>
-
-          <div className="text-center px-8">
-            <div 
-              className="text-orange-500 font-mono text-sm mb-2 font-bold tracking-widest uppercase"
-              role="timer"
-              aria-live="polite"
-              aria-atomic="true"
-            >
-              {(match.status || '').replace('_', ' ')} {match.minute > 0 && `· ${match.minute}'`}
-            </div>
-            <div 
-              className="text-6xl font-black text-white flex items-center gap-4"
-              role="status"
-              aria-live="polite"
-              aria-atomic="true"
-              aria-label={`Score: ${match.homeTeam?.shortName} ${match.homeScore}, ${match.awayTeam?.shortName} ${match.awayScore}`}
-            >
-              <span>{match.homeScore}</span>
-              <span className="text-zinc-700">:</span>
-              <span>{match.awayScore}</span>
+            
+            {/* Match Status */}
+            <div className="flex items-center justify-center gap-2 text-sm sm:text-base">
+              <LiveIndicator status={match.status} size="md" />
+              {match.minute > 0 && (
+                <>
+                  <span>•</span>
+                  <span className="font-semibold">{match.minute}&apos;</span>
+                </>
+              )}
+              <span>•</span>
+              <span>Premier League</span>
             </div>
           </div>
-
-          <div className="text-center flex-1">
-            <div 
-              className="w-20 h-20 bg-white/10 rounded-full mx-auto mb-2 flex items-center justify-center border border-white/20"
-              aria-hidden="true"
+        </Container>
+      </div>
+      
+      {/* Tabs */}
+      <div className="bg-white border-b border-gray-200 sticky top-[60px] z-40">
+        <Container maxWidth="xl">
+          <div className="flex gap-1">
+            <button
+              onClick={() => setActiveTab("overview")}
+              className={`px-4 py-3 font-semibold text-sm transition-colors border-b-2 ${
+                activeTab === "overview"
+                  ? "border-orange-500 text-orange-600"
+                  : "border-transparent text-gray-600 hover:text-gray-900"
+              }`}
+              aria-current={activeTab === "overview" ? "page" : undefined}
             >
-              <span className="text-3xl">{match.awayTeam?.shortName?.[0] ?? '🏟️'}</span>
-            </div>
-            <h2 className="text-white font-bold text-xl">{match.awayTeam?.name ?? match.awayTeam?.shortName}</h2>
+              Overview
+            </button>
+            <button
+              onClick={() => setActiveTab("statistics")}
+              className={`px-4 py-3 font-semibold text-sm transition-colors border-b-2 ${
+                activeTab === "statistics"
+                  ? "border-orange-500 text-orange-600"
+                  : "border-transparent text-gray-600 hover:text-gray-900"
+              }`}
+              aria-current={activeTab === "statistics" ? "page" : undefined}
+            >
+              Statistics
+            </button>
+            <button
+              onClick={() => setActiveTab("chat")}
+              className={`px-4 py-3 font-semibold text-sm transition-colors border-b-2 ${
+                activeTab === "chat"
+                  ? "border-orange-500 text-orange-600"
+                  : "border-transparent text-gray-600 hover:text-gray-900"
+              }`}
+              aria-current={activeTab === "chat" ? "page" : undefined}
+            >
+              Chat
+            </button>
           </div>
-        </div>
-
-        <div className="md:grid md:grid-cols-3 md:gap-6">
-          {/* TIMELINE FEED - left/middle */}
-          <div className="md:col-span-2">
+        </Container>
+      </div>
+      
+      {/* Content */}
+      <Container maxWidth="xl" className="py-6">
+        {/* Overview Tab - Timeline */}
+        {activeTab === "overview" && (
+          <div className="max-w-3xl mx-auto">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Match Timeline</h3>
+            
             <div 
-              className="relative border-l-2 border-zinc-800 ml-4 md:ml-0"
+              className="space-y-4"
               role="feed"
               aria-label="Match Events Timeline"
             >
               {sortedEvents.length === 0 && (
-                <div className="p-6 bg-zinc-900/40 rounded-lg text-gray-400">No events yet</div>
+                <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
+                  <p className="text-gray-500">No events yet</p>
+                </div>
               )}
 
               {sortedEvents.map((ev, idx) => {
                 const dotClass = getDotStyle(ev.type);
-                const isLateDrama = ev.minute >= 90 && ev.type && ev.type.includes('GOAL');
+                const isGoal = ev.type && ev.type.includes('GOAL');
+                
                 return (
                   <article 
                     key={ev.id ?? idx} 
-                    className="mb-10 ml-8 relative"
+                    className={`bg-white rounded-lg border p-4 ${
+                      isGoal ? 'border-orange-400 shadow-md' : 'border-gray-200'
+                    }`}
                     role="article"
                     aria-label={`${ev.type?.replace('_', ' ')} at minute ${ev.minute}`}
                   >
-                    <div className={`absolute -left-[41px] top-0 h-5 w-5 rounded-full ring-4 ring-black ${dotClass} ${isLateDrama ? 'animate-pulse' : ''}`}></div>
-
-                    <div className="flex items-center gap-4 text-zinc-400 text-sm mb-1">
-                      <span className={`font-bold ${isLateDrama ? 'text-orange-500' : ''}`}>{ev.minute ?? "0"}</span>
-                      <span className="uppercase tracking-widest font-semibold">{(ev.type || '').replace('_', ' ')}</span>
-                    </div>
-
-                    <div className={`bg-zinc-900/50 p-4 rounded-lg border ${ev.type && ev.type.includes('VAR') ? 'border-blue-900/30' : 'border-zinc-800'}`}>
-                      <p className="text-white font-bold text-lg">{ev.player ?? ev.description ?? '—'}</p>
-                      {ev.assistPlayer && <p className="text-zinc-500 text-sm italic">Assist: {ev.assistPlayer}</p>}
-                      {(() => {
-                        const detail = (ev as { detail?: string }).detail;
-                        return detail ? <p className="text-zinc-500 text-sm mt-1">{detail}</p> : null;
-                      })()}
-
-                      {/* Substitution layout if available */}
-                      {ev.type && ev.type.includes('SUBSTITUTION') && (
-                        <div className="bg-zinc-800/40 p-3 rounded mt-3 flex gap-4">
-                          <div className="flex-1 border-r border-zinc-800">
-                            <p className="text-green-400 text-xs font-bold uppercase">In</p>
-                            <p className="text-white font-bold">{ev.player ?? '—'}</p>
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-red-400 text-xs font-bold uppercase">Out</p>
-                            <p className="text-zinc-400 font-bold">{(ev.assistPlayer) ?? '—'}</p>
-                          </div>
+                    <div className="flex items-start gap-4">
+                      <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${dotClass.replace('bg-', 'bg-')}`}>
+                        <span className="text-white font-bold text-sm">{ev.minute}&apos;</span>
+                      </div>
+                      
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            {(ev.type || '').replace('_', ' ')}
+                          </span>
                         </div>
-                      )}
+                        
+                        <p className="text-lg font-bold text-gray-900">{ev.player ?? ev.description ?? '—'}</p>
+                        
+                        {ev.assistPlayer && (
+                          <p className="text-sm text-gray-600 mt-1">
+                            Assist: {ev.assistPlayer}
+                          </p>
+                        )}
+                        
+                        {ev.type && ev.type.includes('SUBSTITUTION') && (
+                          <div className="mt-2 flex gap-4 text-sm">
+                            <div className="flex items-center gap-1">
+                              <span className="text-green-600 font-semibold">IN:</span>
+                              <span className="text-gray-900">{ev.player ?? '—'}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-red-600 font-semibold">OUT:</span>
+                              <span className="text-gray-600">{ev.assistPlayer ?? '—'}</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </article>
                 );
               })}
             </div>
           </div>
-
-          {/* Right column: Statistics + Chat */}
-          <div className="md:col-span-1 mt-6 md:mt-0">
-            <MatchStatistics
-              statistics={match.statistics}
-            />
-
-            {/* Chat */}
-            <div className="border rounded p-4 bg-zinc-900 shadow-sm mt-6">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-gray-100">Match Chat</h3>
-                <div className="text-xs text-gray-400">Be respectful — stay on-topic</div>
+        )}
+        
+        {/* Statistics Tab */}
+        {activeTab === "statistics" && (
+          <div className="max-w-2xl mx-auto bg-zinc-900 rounded-lg p-6">
+            <MatchStatistics statistics={match.statistics} />
+          </div>
+        )}
+        
+        {/* Chat Tab */}
+        {activeTab === "chat" && (
+          <div className="max-w-2xl mx-auto">
+            <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-lg text-gray-900">Match Chat</h3>
+                <div className="text-xs text-gray-500">Be respectful</div>
               </div>
 
-              <div className="mb-3">
+              <div className="mb-4">
                 <label htmlFor="username-input" className="sr-only">
                   Your name
                 </label>
@@ -380,7 +424,7 @@ export default function MatchDetailClient({ initialMatch }: Props) {
                   value={username}
                   onChange={e => setUsername(e.target.value)}
                   placeholder="Your name"
-                  className="w-full bg-zinc-800 placeholder-gray-500 text-gray-100 border border-zinc-700 rounded px-3 py-2 focus:ring-2 focus:ring-orange-400 focus:outline-none"
+                  className="w-full bg-gray-50 placeholder-gray-400 text-gray-900 border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none"
                   aria-label="Your name"
                 />
               </div>
@@ -389,25 +433,31 @@ export default function MatchDetailClient({ initialMatch }: Props) {
                 ref={chatContainerRef}
                 onScroll={onChatScroll}
                 aria-live="polite"
-                className="h-56 overflow-auto border border-zinc-800 rounded p-3 mb-3 bg-black/60"
+                className="h-96 overflow-auto border border-gray-200 rounded-lg p-4 mb-4 bg-gray-50"
               >
                 {messages.map((m, i) => {
                   const isOwn = m.userId === userId;
                   return (
                     <div key={m.tempId ?? m.timestamp ?? i} className={`mb-3 flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[80%] px-3 py-2 rounded-lg ${isOwn ? 'bg-orange-400 text-black' : 'bg-zinc-800 text-gray-100'} ${m.pending ? 'opacity-70 italic' : ''}`}>
-                        <div className="text-xs font-semibold">{m.username} {m.pending ? <span className="ml-2 text-xs text-gray-200">(sending...)</span> : null}</div>
-                        <div className="mt-1 leading-snug">{m.message}</div>
-                        <div className="text-[11px] text-gray-400 mt-1 text-right">{m.timestamp ? new Date(m.timestamp).toLocaleTimeString() : ''}</div>
+                      <div className={`max-w-[80%] px-4 py-2 rounded-lg ${isOwn ? 'bg-orange-500 text-white' : 'bg-white border border-gray-200 text-gray-900'} ${m.pending ? 'opacity-70' : ''}`}>
+                        <div className="text-xs font-semibold mb-1">
+                          {m.username} {m.pending && <span className="text-xs italic">(sending...)</span>}
+                        </div>
+                        <div className="text-sm leading-relaxed">{m.message}</div>
+                        <div className={`text-[11px] mt-1 text-right ${isOwn ? 'text-white/70' : 'text-gray-400'}`}>
+                          {m.timestamp ? new Date(m.timestamp).toLocaleTimeString() : ''}
+                        </div>
                       </div>
                     </div>
                   );
                 })}
 
-                {typingUser && <div className="text-sm text-gray-400">{typingUser} is typing...</div>}
+                {typingUser && (
+                  <div className="text-sm text-gray-500 italic">{typingUser} is typing...</div>
+                )}
               </div>
 
-              <div className="flex gap-3 items-start">
+              <div className="flex gap-3">
                 <label htmlFor="message-input" className="sr-only">
                   Type your message
                 </label>
@@ -416,8 +466,8 @@ export default function MatchDetailClient({ initialMatch }: Props) {
                   value={message}
                   onChange={e => handleTypingChange(e.target.value)}
                   onKeyDown={handleMessageKeyDown}
-                  placeholder={username ? "Type a message (Enter to send, Shift+Enter newline)" : "Set your name to join chat"}
-                  className="flex-1 bg-zinc-800 placeholder-gray-500 text-gray-100 border border-zinc-700 rounded px-3 py-2 h-12 resize-none focus:ring-2 focus:ring-orange-400 focus:outline-none"
+                  placeholder={username ? "Type a message (Enter to send)" : "Set your name first"}
+                  className="flex-1 bg-gray-50 placeholder-gray-400 text-gray-900 border border-gray-300 rounded-lg px-4 py-2 h-12 resize-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none"
                   maxLength={500}
                   aria-label="Message"
                   disabled={!connected}
@@ -425,21 +475,21 @@ export default function MatchDetailClient({ initialMatch }: Props) {
 
                 <button
                   onClick={sendMessage}
-                  className={`px-4 py-2 rounded font-semibold ${connected && username.trim() && message.trim() ? 'bg-orange-500 hover:bg-orange-600 text-black' : 'bg-zinc-700 text-gray-400 cursor-not-allowed'} transition-colors`}
+                  className={`px-6 py-2 rounded-lg font-semibold transition-colors ${
+                    connected && username.trim() && message.trim() 
+                      ? 'bg-orange-500 hover:bg-orange-600 text-white' 
+                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  }`}
                   disabled={!connected || !username.trim() || !message.trim()}
                   aria-label="Send message"
                 >
                   Send
                 </button>
               </div>
-
-              <div className="mt-3 text-xs text-gray-500" role="note">
-                Dark theme with orange accent — compact, high-contrast, mobile-friendly.
-              </div>
             </div>
           </div>
-        </div>
-      </section>
-    </main>
+        )}
+      </Container>
+    </div>
   );
 }
