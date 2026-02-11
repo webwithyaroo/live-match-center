@@ -47,6 +47,7 @@ export default function MatchDetailClient({ initialMatch }: Props) {
   const [typingUser, setTypingUser] = useState<string | null>(null);
   const typingTimeout = useRef<number | null>(null);
   const hasJoinedChatRef = useRef(false);
+  const usernameRef = useRef(username);
 
   // auto-scroll refs
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
@@ -55,6 +56,7 @@ export default function MatchDetailClient({ initialMatch }: Props) {
 
   useEffect(() => {
     if (username) localStorage.setItem("mm_username", username);
+    usernameRef.current = username; // Keep ref in sync
   }, [username]);
 
   // Join/leave chat room when username changes or chat tab is active
@@ -70,13 +72,12 @@ export default function MatchDetailClient({ initialMatch }: Props) {
     }
     
     return () => {
-      // Leave chat when component unmounts or username is cleared
-      if (hasJoinedChatRef.current) {
-        socket.emit("leave_chat", { matchId: match.id, userId, username });
+      // Leave chat when component unmounts or username is cleared (use ref for latest value)
+      if (hasJoinedChatRef.current && usernameRef.current) {
+        socket.emit("leave_chat", { matchId: match.id, userId, username: usernameRef.current });
         hasJoinedChatRef.current = false;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [username, connected, activeTab, match.id, userId]);
 
   useEffect(() => {
@@ -171,12 +172,16 @@ export default function MatchDetailClient({ initialMatch }: Props) {
     // User joined/left chat
     socket.on("user_joined", (payload: { matchId?: string | number; username: string }) => {
       if (payload.matchId && payload.matchId !== match.id) return;
+      // Don't show notification for current user (use ref for latest value)
+      if (payload.username === usernameRef.current) return;
       const notification: ChatNotification = { type: 'join', username: payload.username, timestamp: new Date().toISOString() };
       setNotifications(prev => [...prev, notification].slice(-50));
     });
 
     socket.on("user_left", (payload: { matchId?: string | number; username: string }) => {
       if (payload.matchId && payload.matchId !== match.id) return;
+      // Don't show notification for current user (use ref for latest value)
+      if (payload.username === usernameRef.current) return;
       const notification: ChatNotification = { type: 'leave', username: payload.username, timestamp: new Date().toISOString() };
       setNotifications(prev => [...prev, notification].slice(-50));
     });
@@ -184,9 +189,9 @@ export default function MatchDetailClient({ initialMatch }: Props) {
     return () => {
       socket.emit("unsubscribe_match", { matchId: match.id });
       
-      // Leave chat if joined
-      if (hasJoinedChatRef.current && username) {
-        socket.emit("leave_chat", { matchId: match.id, userId, username });
+      // Leave chat if joined (use ref to get latest username)
+      if (hasJoinedChatRef.current && usernameRef.current) {
+        socket.emit("leave_chat", { matchId: match.id, userId, username: usernameRef.current });
       }
       
       socket.off("connect");
