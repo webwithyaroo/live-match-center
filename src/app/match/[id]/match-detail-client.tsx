@@ -23,6 +23,12 @@ type ChatMessage = {
   tempId?: string;
 };
 
+type ChatNotification = {
+  type: 'join' | 'leave';
+  username: string;
+  timestamp: string;
+};
+
 type TabType = "overview" | "statistics" | "chat";
 
 export default function MatchDetailClient({ initialMatch }: Props) {
@@ -36,17 +42,42 @@ export default function MatchDetailClient({ initialMatch }: Props) {
   );
   const [userId] = useState<string>(() => Math.random().toString(36).slice(2, 9));
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [notifications, setNotifications] = useState<ChatNotification[]>([]);
   const [message, setMessage] = useState("");
   const [typingUser, setTypingUser] = useState<string | null>(null);
   const typingTimeout = useRef<number | null>(null);
+  const hasJoinedChatRef = useRef(false);
 
   // auto-scroll refs
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
   const shouldAutoScrollRef = useRef(true);
+  const [showScrollButton, setShowScrollButton] = useState(false);
 
   useEffect(() => {
     if (username) localStorage.setItem("mm_username", username);
   }, [username]);
+
+  // Join/leave chat room when username changes or chat tab is active
+  useEffect(() => {
+    if (!username || !connected) return;
+    
+    const socket = getSocket();
+    
+    // Join chat room
+    if (!hasJoinedChatRef.current && activeTab === "chat") {
+      socket.emit("join_chat", { matchId: match.id, userId, username });
+      hasJoinedChatRef.current = true;
+    }
+    
+    return () => {
+      // Leave chat when component unmounts or username is cleared
+      if (hasJoinedChatRef.current) {
+        socket.emit("leave_chat", { matchId: match.id, userId, username });
+        hasJoinedChatRef.current = false;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [username, connected, activeTab, match.id, userId]);
 
   useEffect(() => {
     const socket = getSocket();
@@ -137,8 +168,25 @@ export default function MatchDetailClient({ initialMatch }: Props) {
       setTypingUser(null);
     });
 
+    // User joined/left chat
+    socket.on("user_joined", (payload: { matchId?: string | number; username: string }) => {
+      if (payload.matchId && payload.matchId !== match.id) return;
+      setNotifications(prev => [...prev, { type: 'join', username: payload.username, timestamp: new Date().toISOString() }].slice(-50));
+    });
+
+    socket.on("user_left", (payload: { matchId?: string | number; username: string }) => {
+      if (payload.matchId && payload.matchId !== match.id) return;
+      setNotifications(prev => [...prev, { type: 'leave', username: payload.username, timestamp: new Date().toISOString() }].slice(-50));
+    });
+
     return () => {
       socket.emit("unsubscribe_match", { matchId: match.id });
+      
+      // Leave chat if joined
+      if (hasJoinedChatRef.current && username) {
+        socket.emit("leave_chat", { matchId: match.id, userId, username });
+      }
+      
       socket.off("connect");
       socket.off("disconnect");
       socket.off("subscribed");
@@ -149,6 +197,8 @@ export default function MatchDetailClient({ initialMatch }: Props) {
       socket.off("chat_message");
       socket.off("typing_start");
       socket.off("typing_stop");
+      socket.off("user_joined");
+      socket.off("user_left");
     };
   }, [match.id, userId]);
 
@@ -223,6 +273,16 @@ export default function MatchDetailClient({ initialMatch }: Props) {
     if (!el) return;
     const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
     shouldAutoScrollRef.current = nearBottom;
+    setShowScrollButton(!nearBottom);
+  };
+
+  const scrollToBottom = () => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTo({
+        top: chatContainerRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
   };
 
   // Enter to send, Shift+Enter newline
@@ -332,12 +392,18 @@ export default function MatchDetailClient({ initialMatch }: Props) {
         {/* Overview Tab - Timeline */}
         {activeTab === "overview" && (
           <div className="max-w-3xl mx-auto">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Match Timeline</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-gray-900">Match Timeline</h3>
+              <div className="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                Latest Events
+              </div>
+            </div>
             
             <div 
-              className="space-y-4"
+              className="space-y-4 max-h-[600px] overflow-y-auto pr-2 scroll-smooth"
               role="feed"
               aria-label="Match Events Timeline"
+              style={{ scrollbarWidth: 'thin' }}
             >
               {sortedEvents.length === 0 && (
                 <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
@@ -352,7 +418,7 @@ export default function MatchDetailClient({ initialMatch }: Props) {
                 return (
                   <article 
                     key={ev.id ?? idx} 
-                    className={`bg-white rounded-lg border p-4 ${
+                    className={`bg-white rounded-lg border p-4 transition-all ${
                       isGoal ? 'border-orange-400 shadow-md' : 'border-gray-200'
                     }`}
                     role="article"
@@ -401,7 +467,7 @@ export default function MatchDetailClient({ initialMatch }: Props) {
         
         {/* Statistics Tab */}
         {activeTab === "statistics" && (
-          <div className="max-w-2xl mx-auto bg-zinc-900 rounded-lg p-6">
+          <div className="max-w-3xl mx-auto">
             <MatchStatistics statistics={match.statistics} />
           </div>
         )}
@@ -429,31 +495,66 @@ export default function MatchDetailClient({ initialMatch }: Props) {
                 />
               </div>
 
-              <div
-                ref={chatContainerRef}
-                onScroll={onChatScroll}
-                aria-live="polite"
-                className="h-96 overflow-auto border border-gray-200 rounded-lg p-4 mb-4 bg-gray-50"
-              >
-                {messages.map((m, i) => {
-                  const isOwn = m.userId === userId;
-                  return (
-                    <div key={m.tempId ?? m.timestamp ?? i} className={`mb-3 flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[80%] px-4 py-2 rounded-lg ${isOwn ? 'bg-orange-500 text-white' : 'bg-white border border-gray-200 text-gray-900'} ${m.pending ? 'opacity-70' : ''}`}>
-                        <div className="text-xs font-semibold mb-1">
-                          {m.username} {m.pending && <span className="text-xs italic">(sending...)</span>}
-                        </div>
-                        <div className="text-sm leading-relaxed">{m.message}</div>
-                        <div className={`text-[11px] mt-1 text-right ${isOwn ? 'text-white/70' : 'text-gray-400'}`}>
-                          {m.timestamp ? new Date(m.timestamp).toLocaleTimeString() : ''}
+              <div className="relative">
+                <div
+                  ref={chatContainerRef}
+                  onScroll={onChatScroll}
+                  aria-live="polite"
+                  className="h-96 overflow-auto border border-gray-200 rounded-lg p-4 mb-4 bg-gray-50 scroll-smooth"
+                >
+                  {messages.map((m, i) => {
+                    const isOwn = m.userId === userId;
+                    return (
+                      <div key={m.tempId ?? m.timestamp ?? i} className={`mb-3 flex ${isOwn ? 'justify-end' : 'justify-start'} animate-fadeIn`}>
+                        <div className={`max-w-[80%] px-4 py-2 rounded-lg ${isOwn ? 'bg-orange-500 text-white' : 'bg-white border border-gray-200 text-gray-900'} ${m.pending ? 'opacity-70' : ''}`}>
+                          <div className="text-xs font-semibold mb-1">
+                            {m.username} {m.pending && <span className="text-xs italic">(sending...)</span>}
+                          </div>
+                          <div className="text-sm leading-relaxed">{m.message}</div>
+                          <div className={`text-[11px] mt-1 text-right ${isOwn ? 'text-white/70' : 'text-gray-400'}`}>
+                            {m.timestamp ? new Date(m.timestamp).toLocaleTimeString() : ''}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
 
-                {typingUser && (
-                  <div className="text-sm text-gray-500 italic">{typingUser} is typing...</div>
+                  {/* Join/Leave notifications */}
+                  {notifications.slice(-10).map((notif, i) => (
+                    <div key={`notif-${notif.timestamp}-${i}`} className="mb-2 flex justify-center animate-fadeIn">
+                      <div className="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                        {notif.username} {notif.type === 'join' ? 'joined' : 'left'} the chat
+                      </div>
+                    </div>
+                  ))}
+
+                  {typingUser && (
+                    <div className="text-sm text-gray-500 italic animate-pulse">{typingUser} is typing...</div>
+                  )}
+                </div>
+
+                {/* Scroll to bottom button */}
+                {showScrollButton && (
+                  <button
+                    onClick={scrollToBottom}
+                    className="absolute bottom-6 right-6 bg-orange-500 hover:bg-orange-600 text-white rounded-full p-3 shadow-lg transition-all animate-fadeIn"
+                    aria-label="Scroll to bottom"
+                    title="Scroll to bottom"
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 14l-7 7m0 0l-7-7m7 7V3"
+                      />
+                    </svg>
+                  </button>
                 )}
               </div>
 
