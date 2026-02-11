@@ -359,7 +359,7 @@ export default function MatchDetailClient({ initialMatch }: Props) {
           <div className="flex gap-1">
             <button
               onClick={() => setActiveTab("overview")}
-              className={`px-6 py-4 font-medium text-sm transition-colors border-b-3 ${
+              className={`px-6 py-4 font-medium text-sm transition-colors ${
                 activeTab === "overview"
                   ? "border-b-[3px] border-[#FF5500] text-white"
                   : "border-b-[3px] border-transparent text-[#666666] hover:text-[#9E9E9E]"
@@ -370,7 +370,7 @@ export default function MatchDetailClient({ initialMatch }: Props) {
             </button>
             <button
               onClick={() => setActiveTab("statistics")}
-              className={`px-6 py-4 font-medium text-sm transition-colors border-b-3 ${
+              className={`px-6 py-4 font-medium text-sm transition-colors ${
                 activeTab === "statistics"
                   ? "border-b-[3px] border-[#FF5500] text-white"
                   : "border-b-[3px] border-transparent text-[#666666] hover:text-[#9E9E9E]"
@@ -381,7 +381,7 @@ export default function MatchDetailClient({ initialMatch }: Props) {
             </button>
             <button
               onClick={() => setActiveTab("chat")}
-              className={`px-6 py-4 font-medium text-sm transition-colors border-b-3 ${
+              className={`px-6 py-4 font-medium text-sm transition-colors ${
                 activeTab === "chat"
                   ? "border-b-[3px] border-[#FF5500] text-white"
                   : "border-b-[3px] border-transparent text-[#666666] hover:text-[#9E9E9E]"
