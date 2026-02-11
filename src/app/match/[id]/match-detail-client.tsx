@@ -84,6 +84,7 @@ export default function MatchDetailClient({ initialMatch }: Props) {
     const socket = getSocket();
 
     const subscribe = () => {
+      console.log(`📡 Subscribing to match ${match.id}`);
       socket.emit("subscribe_match", { matchId: match.id });
       // Rejoin chat if user was previously in chat
       if (hasJoinedChatRef.current && usernameRef.current) {
@@ -92,36 +93,47 @@ export default function MatchDetailClient({ initialMatch }: Props) {
     };
 
     socket.on("connect", () => {
+      console.log(`✅ Socket connected, subscribing to match ${match.id}`);
       setConnected(true);
       subscribe();
     });
 
     socket.on("disconnect", () => {
+      console.log(`❌ Socket disconnected`);
       setConnected(false);
     });
 
     // Initialize match from server payload
     socket.on("subscribed", ({ currentState }: { currentState: MatchDetail }) => {
+      console.log(`📥 Received initial match state for match ${match.id}:`, currentState);
       setMatch(currentState);
     });
 
     // Score updates
-    socket.on("score_update", (payload: { homeScore: number; awayScore: number }) => {
+    socket.on("score_update", (payload: { matchId?: string; homeScore: number; awayScore: number }) => {
+      if (payload.matchId && payload.matchId !== match.id) return;
+      console.log(`⚽ Score update for match ${match.id}:`, payload.homeScore, '-', payload.awayScore);
       setMatch(prev => ({ ...prev, homeScore: payload.homeScore, awayScore: payload.awayScore }));
     });
 
     // New match event
-    socket.on("match_event", (event: MatchEvent) => {
+    socket.on("match_event", (event: MatchEvent & { matchId?: string }) => {
+      if (event.matchId && event.matchId !== match.id) return;
+      console.log(`🎯 Match event for match ${match.id}:`, event.type, event.player);
       setMatch(prev => ({ ...prev, events: [...(prev.events || []), event] }));
     });
 
     // Stats update
-    socket.on("stats_update", (payload: { statistics: MatchDetail["statistics"] }) => {
+    socket.on("stats_update", (payload: { matchId?: string; statistics: MatchDetail["statistics"] }) => {
+      if (payload.matchId && payload.matchId !== match.id) return;
+      console.log(`📊 Stats update for match ${match.id}`);
       setMatch(prev => ({ ...prev, statistics: payload.statistics }));
     });
 
     // Status change
-    socket.on("status_change", (payload: { status: MatchStatus; minute: number }) => {
+    socket.on("status_change", (payload: { matchId?: string; status: MatchStatus; minute: number }) => {
+      if (payload.matchId && payload.matchId !== match.id) return;
+      console.log(`🔄 Status change for match ${match.id}:`, payload.status, `(${payload.minute}')`);
       setMatch(prev => ({ ...prev, status: payload.status, minute: payload.minute }));
     });
 

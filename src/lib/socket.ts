@@ -20,26 +20,43 @@ let socket: Socket | null = null;
  */
 export function getSocket(): Socket {
   if (!socket) {
+    console.log(`🔌 Initializing Socket.IO connection to ${SOCKET_URL}`);
+    
     socket = io(SOCKET_URL, {
-      transports: ["websocket"],
+      transports: ["websocket", "polling"],
       reconnection: true,
       reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
       timeout: 10000,
     });
 
+    socket.on("connect", () => {
+      console.log(`✅ Socket connected (ID: ${socket?.id})`);
+    });
+
+    socket.on("disconnect", (reason) => {
+      console.log(`❌ Socket disconnected:`, reason);
+    });
+
     socket.on("connect_error", (err) => {
+      console.error("🔴 Socket connection error:", err.message);
       // Log connection errors for debugging in development
       if (process.env.NODE_ENV === "development") {
-        console.error("Socket connection error:", err.message);
+        console.error("Full error:", err);
       }
     });
 
+    socket.on("reconnect_attempt", (attemptNumber) => {
+      console.log(`🔄 Reconnection attempt ${attemptNumber}`);
+    });
+
+    socket.on("reconnect", (attemptNumber) => {
+      console.log(`✅ Successfully reconnected after ${attemptNumber} attempts`);
+    });
+
     socket.on("reconnect_failed", () => {
-      // Handle complete reconnection failure
-      if (process.env.NODE_ENV === "development") {
-        console.error("Socket reconnection failed");
-      }
+      console.error("🔴 Socket reconnection failed after all attempts");
     });
   }
 
