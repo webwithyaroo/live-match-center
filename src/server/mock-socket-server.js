@@ -285,6 +285,14 @@ io.on('connection', (socket) => {
     }
     chatRooms[matchId].users.add(username);
     
+    // Send chat history to the joining user (last 50 messages)
+    if (chatRooms[matchId].messages.length > 0) {
+      socket.emit('chat_history', {
+        matchId,
+        messages: chatRooms[matchId].messages.slice(-50)
+      });
+    }
+    
     // Notify other users
     socket.to(`chat_${matchId}`).emit('user_joined', {
       matchId,
