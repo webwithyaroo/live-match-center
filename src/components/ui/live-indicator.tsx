@@ -5,15 +5,15 @@ type LiveIndicatorProps = {
 };
 
 const sizeClasses = {
-  sm: "text-xs px-2 py-0.5",
-  md: "text-sm px-3 py-1",
-  lg: "text-base px-4 py-1.5",
+  sm: "text-xs px-2 py-1",
+  md: "text-sm px-3 py-1.5",
+  lg: "text-base px-4 py-2",
 };
 
 /**
  * LiveIndicator Component
  * 
- * Displays match status with appropriate styling and animation
+ * Premium status indicator with glassmorphism and orange pulse animation
  */
 export default function LiveIndicator({ status, size = "md", className = "" }: LiveIndicatorProps) {
   const isLive = status === "FIRST_HALF" || status === "SECOND_HALF";
@@ -24,13 +24,13 @@ export default function LiveIndicator({ status, size = "md", className = "" }: L
   
   const getBadgeStyle = () => {
     if (isLive) {
-      return "bg-red-500 text-white";
+      return "bg-[#FF5500] text-white border border-[rgba(255,85,0,0.4)] live-glow backdrop-blur-sm";
     } else if (isFinished) {
-      return "bg-green-600 text-white";
+      return "bg-[#10B981] text-white border border-[rgba(16,185,129,0.4)] backdrop-blur-sm";
     } else if (isHalfTime) {
-      return "bg-yellow-500 text-black";
+      return "bg-[#EAB308] text-black border border-[rgba(234,179,8,0.4)] backdrop-blur-sm";
     } else {
-      return "bg-gray-200 text-gray-700";
+      return "bg-[#6B7280] text-white border border-[rgba(107,114,128,0.4)] backdrop-blur-sm";
     }
   };
   
@@ -45,7 +45,7 @@ export default function LiveIndicator({ status, size = "md", className = "" }: L
   
   return (
     <span 
-      className={`inline-flex items-center gap-1.5 font-semibold rounded-full ${sizeClass} ${getBadgeStyle()} ${className}`}
+      className={`inline-flex items-center gap-2 font-semibold rounded-full ${sizeClass} ${getBadgeStyle()} ${className}`}
       role="status"
       aria-live={isLive ? "polite" : "off"}
     >

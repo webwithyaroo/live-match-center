@@ -20,10 +20,7 @@ const sizeClasses = {
 /**
  * TeamBadge Component
  * 
- * Displays team logo with smart fallbacks:
- * 1. Use team.logoUrl if available
- * 2. Use DiceBear API with team.id as seed
- * 3. Fallback to team initials in gradient circle
+ * Premium team logo with dark container and smart fallbacks
  */
 export default function TeamBadge({ team, size = "md", showName = false, className = "" }: TeamBadgeProps) {
   const [imageError, setImageError] = useState(false);
@@ -44,7 +41,7 @@ export default function TeamBadge({ team, size = "md", showName = false, classNa
   return (
     <div className={`flex items-center gap-2 ${className}`}>
       <div 
-        className={`${sizeClass} rounded-full flex items-center justify-center bg-gradient-to-br from-orange-400 to-orange-600 text-white font-bold overflow-hidden flex-shrink-0 border-2 border-white/20 shadow-md`}
+        className={`${sizeClass} rounded-full flex items-center justify-center bg-[#1A1A1C] text-white font-bold overflow-hidden flex-shrink-0 border border-[#2C2C2E]`}
         aria-hidden="true"
       >
         {!imageError && logoUrl ? (
@@ -55,13 +52,13 @@ export default function TeamBadge({ team, size = "md", showName = false, classNa
             onError={() => setImageError(true)}
           />
         ) : (
-          <span className="flex items-center justify-center w-full h-full">
+          <span className="flex items-center justify-center w-full h-full text-[#FF5500]">
             {initials}
           </span>
         )}
       </div>
       {showName && (
-        <span className="font-semibold text-sm truncate">
+        <span className="font-medium text-sm truncate text-white">
           {team.shortName || team.name}
         </span>
       )}

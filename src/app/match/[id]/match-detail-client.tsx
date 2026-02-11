@@ -265,13 +265,13 @@ export default function MatchDetailClient({ initialMatch }: Props) {
   });
 
   const getDotStyle = (type?: string) => {
-    if (!type) return 'bg-zinc-700';
-    if (type.includes('GOAL')) return 'bg-orange-600';
-    if (type.includes('YELLOW')) return 'bg-yellow-400';
-    if (type.includes('RED')) return 'bg-red-500';
-    if (type.includes('VAR')) return 'bg-blue-500';
-    if (type.includes('SUBSTITUTION')) return 'bg-purple-500';
-    return 'bg-zinc-700';
+    if (!type) return 'bg-[#2C2C2E]';
+    if (type.includes('GOAL')) return 'bg-[#FF5500]';
+    if (type.includes('YELLOW')) return 'bg-[#EAB308]';
+    if (type.includes('RED')) return 'bg-[#DC2626]';
+    if (type.includes('VAR')) return 'bg-[#3B82F6]';
+    if (type.includes('SUBSTITUTION')) return 'bg-[#8B5CF6]';
+    return 'bg-[#2C2C2E]';
   };
 
   // chat scroll handler
@@ -302,67 +302,67 @@ export default function MatchDetailClient({ initialMatch }: Props) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#0E0E10]">
       <Header showBack connected={connected} />
       
-      {/* Compact Match Header */}
-      <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white">
+      {/* Premium Match Header with Gradient */}
+      <div className="bg-gradient-to-b from-[#1A1A1C] to-[#0E0E10] text-white border-b border-[#2C2C2E]">
         <Container maxWidth="xl">
-          <div className="py-6 sm:py-8">
+          <div className="py-8">
             {/* Teams and Score */}
-            <div className="flex items-center justify-center gap-4 sm:gap-8 mb-4">
+            <div className="flex items-center justify-center gap-6 sm:gap-12 mb-6">
               {/* Home Team */}
-              <div className="flex flex-col items-center flex-1 max-w-[150px]">
+              <div className="flex flex-col items-center flex-1 max-w-[180px]">
                 <TeamBadge team={match.homeTeam} size="xl" />
-                <h2 className="text-base sm:text-lg font-bold mt-2 text-center">
+                <h2 className="text-lg sm:text-xl font-bold mt-3 text-center">
                   {match.homeTeam.shortName}
                 </h2>
               </div>
               
               {/* Score */}
-              <div className="flex flex-col items-center px-4">
-                <div className="flex items-center gap-3 sm:gap-4">
-                  <span className="text-4xl sm:text-5xl font-black">{match.homeScore}</span>
-                  <span className="text-2xl sm:text-3xl text-white/60">:</span>
-                  <span className="text-4xl sm:text-5xl font-black">{match.awayScore}</span>
+              <div className="flex flex-col items-center px-6">
+                <div className="flex items-center gap-4 sm:gap-6">
+                  <span className="text-5xl sm:text-6xl font-bold leading-none">{match.homeScore}</span>
+                  <span className="text-3xl sm:text-4xl text-[#666666] font-bold">:</span>
+                  <span className="text-5xl sm:text-6xl font-bold leading-none">{match.awayScore}</span>
                 </div>
               </div>
               
               {/* Away Team */}
-              <div className="flex flex-col items-center flex-1 max-w-[150px]">
+              <div className="flex flex-col items-center flex-1 max-w-[180px]">
                 <TeamBadge team={match.awayTeam} size="xl" />
-                <h2 className="text-base sm:text-lg font-bold mt-2 text-center">
+                <h2 className="text-lg sm:text-xl font-bold mt-3 text-center">
                   {match.awayTeam.shortName}
                 </h2>
               </div>
             </div>
             
             {/* Match Status */}
-            <div className="flex items-center justify-center gap-2 text-sm sm:text-base">
+            <div className="flex items-center justify-center gap-3 text-sm sm:text-base">
               <LiveIndicator status={match.status} size="md" />
               {match.minute > 0 && (
                 <>
-                  <span>•</span>
-                  <span className="font-semibold">{match.minute}&apos;</span>
+                  <span className="text-[#666666]">•</span>
+                  <span className="font-medium text-[#FF5500]">{match.minute}&apos;</span>
                 </>
               )}
-              <span>•</span>
-              <span>Premier League</span>
+              <span className="text-[#666666]">•</span>
+              <span className="text-[#9E9E9E]">Premier League</span>
             </div>
           </div>
         </Container>
       </div>
       
-      {/* Tabs */}
-      <div className="bg-white border-b border-gray-200 sticky top-[60px] z-40">
+      {/* Premium Tabs with Orange Bottom Border */}
+      <div className="bg-[#1A1A1C] border-b border-[#2C2C2E] sticky top-[60px] z-40 backdrop-blur-md">
         <Container maxWidth="xl">
           <div className="flex gap-1">
             <button
               onClick={() => setActiveTab("overview")}
-              className={`px-4 py-3 font-semibold text-sm transition-colors border-b-2 ${
+              className={`px-6 py-4 font-medium text-sm transition-colors ${
                 activeTab === "overview"
-                  ? "border-orange-500 text-orange-600"
-                  : "border-transparent text-gray-600 hover:text-gray-900"
+                  ? "border-b-[3px] border-[#FF5500] text-white"
+                  : "border-b-[3px] border-transparent text-[#666666] hover:text-[#9E9E9E]"
               }`}
               aria-current={activeTab === "overview" ? "page" : undefined}
             >
@@ -370,10 +370,10 @@ export default function MatchDetailClient({ initialMatch }: Props) {
             </button>
             <button
               onClick={() => setActiveTab("statistics")}
-              className={`px-4 py-3 font-semibold text-sm transition-colors border-b-2 ${
+              className={`px-6 py-4 font-medium text-sm transition-colors ${
                 activeTab === "statistics"
-                  ? "border-orange-500 text-orange-600"
-                  : "border-transparent text-gray-600 hover:text-gray-900"
+                  ? "border-b-[3px] border-[#FF5500] text-white"
+                  : "border-b-[3px] border-transparent text-[#666666] hover:text-[#9E9E9E]"
               }`}
               aria-current={activeTab === "statistics" ? "page" : undefined}
             >
@@ -381,10 +381,10 @@ export default function MatchDetailClient({ initialMatch }: Props) {
             </button>
             <button
               onClick={() => setActiveTab("chat")}
-              className={`px-4 py-3 font-semibold text-sm transition-colors border-b-2 ${
+              className={`px-6 py-4 font-medium text-sm transition-colors ${
                 activeTab === "chat"
-                  ? "border-orange-500 text-orange-600"
-                  : "border-transparent text-gray-600 hover:text-gray-900"
+                  ? "border-b-[3px] border-[#FF5500] text-white"
+                  : "border-b-[3px] border-transparent text-[#666666] hover:text-[#9E9E9E]"
               }`}
               aria-current={activeTab === "chat" ? "page" : undefined}
             >
@@ -395,13 +395,13 @@ export default function MatchDetailClient({ initialMatch }: Props) {
       </div>
       
       {/* Content */}
-      <Container maxWidth="xl" className="py-6">
-        {/* Overview Tab - Timeline */}
+      <Container maxWidth="xl" className="py-8">
+        {/* Overview Tab - Enhanced Timeline */}
         {activeTab === "overview" && (
           <div className="max-w-3xl mx-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-gray-900">Match Timeline</h3>
-              <div className="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-2xl font-bold text-white">Match Timeline</h3>
+              <div className="text-xs text-[#9E9E9E] bg-[#1A1A1C] border border-[#2C2C2E] px-4 py-2 rounded-full">
                 Latest Events
               </div>
             </div>
@@ -413,8 +413,8 @@ export default function MatchDetailClient({ initialMatch }: Props) {
               style={{ scrollbarWidth: 'thin' }}
             >
               {sortedEvents.length === 0 && (
-                <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
-                  <p className="text-gray-500">No events yet</p>
+                <div className="bg-[#1A1A1C] rounded-lg border border-[#2C2C2E] p-12 text-center">
+                  <p className="text-[#9E9E9E]">No events yet</p>
                 </div>
               )}
 
@@ -425,41 +425,41 @@ export default function MatchDetailClient({ initialMatch }: Props) {
                 return (
                   <article 
                     key={ev.id ?? idx} 
-                    className={`bg-white rounded-lg border p-4 transition-all ${
-                      isGoal ? 'border-orange-400 shadow-md' : 'border-gray-200'
+                    className={`glass-card rounded-lg p-5 transition-all ${
+                      isGoal ? 'border-[#FF5500] orange-glow' : ''
                     }`}
                     role="article"
                     aria-label={`${ev.type?.replace('_', ' ')} at minute ${ev.minute}`}
                   >
                     <div className="flex items-start gap-4">
-                      <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${dotClass.replace('bg-', 'bg-')}`}>
+                      <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${dotClass.replace('bg-', 'bg-')} border border-[#2C2C2E]`}>
                         <span className="text-white font-bold text-sm">{ev.minute}&apos;</span>
                       </div>
                       
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-xs font-medium text-[#9E9E9E] uppercase tracking-wider">
                             {(ev.type || '').replace('_', ' ')}
                           </span>
                         </div>
                         
-                        <p className="text-lg font-bold text-gray-900">{ev.player ?? ev.description ?? '—'}</p>
+                        <p className="text-lg font-bold text-white">{ev.player ?? ev.description ?? '—'}</p>
                         
                         {ev.assistPlayer && (
-                          <p className="text-sm text-gray-600 mt-1">
+                          <p className="text-sm text-[#9E9E9E] mt-2">
                             Assist: {ev.assistPlayer}
                           </p>
                         )}
                         
                         {ev.type && ev.type.includes('SUBSTITUTION') && (
-                          <div className="mt-2 flex gap-4 text-sm">
-                            <div className="flex items-center gap-1">
-                              <span className="text-green-600 font-semibold">IN:</span>
-                              <span className="text-gray-900">{ev.player ?? '—'}</span>
+                          <div className="mt-3 flex gap-6 text-sm">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[#10B981] font-medium">IN:</span>
+                              <span className="text-white">{ev.player ?? '—'}</span>
                             </div>
-                            <div className="flex items-center gap-1">
-                              <span className="text-red-600 font-semibold">OUT:</span>
-                              <span className="text-gray-600">{ev.assistPlayer ?? '—'}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-[#DC2626] font-medium">OUT:</span>
+                              <span className="text-[#9E9E9E]">{ev.assistPlayer ?? '—'}</span>
                             </div>
                           </div>
                         )}
@@ -482,10 +482,10 @@ export default function MatchDetailClient({ initialMatch }: Props) {
         {/* Chat Tab */}
         {activeTab === "chat" && (
           <div className="max-w-2xl mx-auto">
-            <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-lg text-gray-900">Match Chat</h3>
-                <div className="text-xs text-gray-500">Be respectful</div>
+            <div className="bg-[#1A1A1C] border border-[#2C2C2E] rounded-lg p-6 shadow-sm">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="font-bold text-xl text-white">Match Chat</h3>
+                <div className="text-xs text-[#9E9E9E]">Be respectful</div>
               </div>
 
               <div className="mb-4">
@@ -497,7 +497,7 @@ export default function MatchDetailClient({ initialMatch }: Props) {
                   value={username}
                   onChange={e => setUsername(e.target.value)}
                   placeholder="Your name"
-                  className="w-full bg-gray-50 placeholder-gray-400 text-gray-900 border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none"
+                  className="w-full bg-[#0E0E10] placeholder-[#666666] text-white border border-[#2C2C2E] rounded-lg px-4 py-3 focus:ring-2 focus:ring-[#FF5500] focus:border-[#FF5500] focus:outline-none transition-all"
                   aria-label="Your name"
                 />
               </div>
@@ -507,18 +507,18 @@ export default function MatchDetailClient({ initialMatch }: Props) {
                   ref={chatContainerRef}
                   onScroll={onChatScroll}
                   aria-live="polite"
-                  className="h-96 overflow-auto border border-gray-200 rounded-lg p-4 mb-4 bg-gray-50 scroll-smooth"
+                  className="h-96 overflow-auto border border-[#2C2C2E] rounded-lg p-4 mb-4 bg-[#0E0E10] scroll-smooth"
                 >
                   {messages.map((m, i) => {
                     const isOwn = m.userId === userId;
                     return (
                       <div key={m.tempId ?? m.timestamp ?? i} className={`mb-3 flex ${isOwn ? 'justify-end' : 'justify-start'} animate-fadeIn`}>
-                        <div className={`max-w-[80%] px-4 py-2 rounded-lg ${isOwn ? 'bg-orange-500 text-white' : 'bg-white border border-gray-200 text-gray-900'} ${m.pending ? 'opacity-70' : ''}`}>
-                          <div className="text-xs font-semibold mb-1">
+                        <div className={`max-w-[80%] px-4 py-3 rounded-lg ${isOwn ? 'bg-[#FF5500] text-white border-l-[3px] border-[#FF8800]' : 'bg-[#1A1A1C] border border-[#2C2C2E] text-white'} ${m.pending ? 'opacity-70' : ''}`}>
+                          <div className="text-xs font-medium mb-1 ${isOwn ? 'text-white/80' : 'text-[#9E9E9E]'}">
                             {m.username} {m.pending && <span className="text-xs italic">(sending...)</span>}
                           </div>
                           <div className="text-sm leading-relaxed">{m.message}</div>
-                          <div className={`text-[11px] mt-1 text-right ${isOwn ? 'text-white/70' : 'text-gray-400'}`}>
+                          <div className={`text-[11px] mt-1 text-right ${isOwn ? 'text-white/60' : 'text-[#666666]'}`}>
                             {m.timestamp ? new Date(m.timestamp).toLocaleTimeString() : ''}
                           </div>
                         </div>
@@ -529,14 +529,14 @@ export default function MatchDetailClient({ initialMatch }: Props) {
                   {/* Join/Leave notifications */}
                   {notifications.slice(-10).map((notif, i) => (
                     <div key={`notif-${notif.timestamp}-${i}`} className="mb-2 flex justify-center animate-fadeIn">
-                      <div className="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                      <div className="text-xs text-[#9E9E9E] bg-[#1A1A1C] border border-[#2C2C2E] px-4 py-2 rounded-full">
                         {notif.username} {notif.type === 'join' ? 'joined' : 'left'} the chat
                       </div>
                     </div>
                   ))}
 
                   {typingUser && (
-                    <div className="text-sm text-gray-500 italic animate-pulse">{typingUser} is typing...</div>
+                    <div className="text-sm text-[#9E9E9E] italic animate-pulse">{typingUser} is typing...</div>
                   )}
                 </div>
 
@@ -544,7 +544,7 @@ export default function MatchDetailClient({ initialMatch }: Props) {
                 {showScrollButton && (
                   <button
                     onClick={scrollToBottom}
-                    className="absolute bottom-6 right-6 bg-orange-500 hover:bg-orange-600 text-white rounded-full p-3 shadow-lg transition-all animate-fadeIn"
+                    className="absolute bottom-6 right-6 bg-[#FF5500] hover:bg-[#FF8800] text-white rounded-full p-3 shadow-lg transition-all animate-fadeIn orange-glow"
                     aria-label="Scroll to bottom"
                     title="Scroll to bottom"
                   >
@@ -575,7 +575,7 @@ export default function MatchDetailClient({ initialMatch }: Props) {
                   onChange={e => handleTypingChange(e.target.value)}
                   onKeyDown={handleMessageKeyDown}
                   placeholder={username ? "Type a message (Enter to send)" : "Set your name first"}
-                  className="flex-1 bg-gray-50 placeholder-gray-400 text-gray-900 border border-gray-300 rounded-lg px-4 py-2 h-12 resize-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none"
+                  className="flex-1 bg-[#0E0E10] placeholder-[#666666] text-white border border-[#2C2C2E] rounded-lg px-4 py-3 h-12 resize-none focus:ring-2 focus:ring-[#FF5500] focus:border-[#FF5500] focus:outline-none transition-all"
                   maxLength={500}
                   aria-label="Message"
                   disabled={!connected}
@@ -583,10 +583,10 @@ export default function MatchDetailClient({ initialMatch }: Props) {
 
                 <button
                   onClick={sendMessage}
-                  className={`px-6 py-2 rounded-lg font-semibold transition-colors ${
+                  className={`px-6 py-3 rounded-lg font-medium transition-all ${
                     connected && username.trim() && message.trim() 
-                      ? 'bg-orange-500 hover:bg-orange-600 text-white' 
-                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      ? 'bg-[#FF5500] hover:bg-[#FF8800] text-white orange-glow' 
+                      : 'bg-[#2C2C2E] text-[#666666] cursor-not-allowed'
                   }`}
                   disabled={!connected || !username.trim() || !message.trim()}
                   aria-label="Send message"

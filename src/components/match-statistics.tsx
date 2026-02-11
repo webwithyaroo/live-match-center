@@ -9,8 +9,7 @@ type MatchStatisticsProps = {
 /**
  * MatchStatistics Component
  * 
- * Displays match statistics in a formatted way with progress bars
- * for visual representation. Uses icons for different stat types.
+ * Premium statistics display with dark theme and orange accents
  */
 export default function MatchStatistics({
   statistics,
@@ -18,16 +17,16 @@ export default function MatchStatistics({
 
   return (
     <div 
-      className="bg-zinc-900 border border-zinc-800 rounded-lg p-6"
+      className="bg-[#1A1A1C] border border-[#2C2C2E] rounded-lg p-6"
       role="region"
       aria-label="Match Statistics"
     >
-      <h3 className="font-semibold text-xl mb-6 text-white flex items-center gap-2">
-        <Activity className="w-6 h-6 text-orange-500" aria-hidden="true" />
+      <h3 className="font-bold text-2xl mb-6 text-white flex items-center gap-2">
+        <Activity className="w-6 h-6 text-[#FF5500]" aria-hidden="true" />
         Match Statistics
       </h3>
 
-      <div className="space-y-5">
+      <div className="space-y-4">
         <StatBar
           label="Possession"
           homeValue={statistics.possession.home}
