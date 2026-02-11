@@ -52,8 +52,6 @@ function StatRow({ label, homeValue, awayValue, showAsPercentage, icon }: StatRo
 
 type MatchStatisticsProps = {
   statistics: MatchStats;
-  homeTeamName: string;
-  awayTeamName: string;
 };
 
 /**

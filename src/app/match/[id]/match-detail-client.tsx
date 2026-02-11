@@ -333,7 +333,10 @@ export default function MatchDetailClient({ initialMatch }: Props) {
                     <div className={`bg-zinc-900/50 p-4 rounded-lg border ${ev.type && ev.type.includes('VAR') ? 'border-blue-900/30' : 'border-zinc-800'}`}>
                       <p className="text-white font-bold text-lg">{ev.player ?? ev.description ?? '—'}</p>
                       {ev.assistPlayer && <p className="text-zinc-500 text-sm italic">Assist: {ev.assistPlayer}</p>}
-                      {(ev as { detail?: string }).detail && <p className="text-zinc-500 text-sm mt-1">{(ev as { detail?: string }).detail}</p>}
+                      {(() => {
+                        const detail = (ev as { detail?: string }).detail;
+                        return detail ? <p className="text-zinc-500 text-sm mt-1">{detail}</p> : null;
+                      })()}
 
                       {/* Substitution layout if available */}
                       {ev.type && ev.type.includes('SUBSTITUTION') && (
@@ -359,8 +362,6 @@ export default function MatchDetailClient({ initialMatch }: Props) {
           <div className="md:col-span-1 mt-6 md:mt-0">
             <MatchStatistics
               statistics={match.statistics}
-              homeTeamName={match.homeTeam?.shortName || "Home"}
-              awayTeamName={match.awayTeam?.shortName || "Away"}
             />
 
             {/* Chat */}
