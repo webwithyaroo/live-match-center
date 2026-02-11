@@ -85,6 +85,10 @@ export default function MatchDetailClient({ initialMatch }: Props) {
 
     const subscribe = () => {
       socket.emit("subscribe_match", { matchId: match.id });
+      // Rejoin chat if user was previously in chat
+      if (hasJoinedChatRef.current && username) {
+        socket.emit("join_chat", { matchId: match.id, userId, username });
+      }
     };
 
     socket.on("connect", () => {
@@ -186,6 +190,18 @@ export default function MatchDetailClient({ initialMatch }: Props) {
       setNotifications(prev => [...prev, notification].slice(-50));
     });
 
+    // Chat history (received when joining/rejoining chat)
+    socket.on("chat_history", (payload: { matchId?: string | number; messages: ChatMessage[] }) => {
+      if (payload.matchId && payload.matchId !== match.id) return;
+      setMessages(payload.messages || []);
+      // Auto-scroll to bottom after loading history
+      setTimeout(() => {
+        if (chatContainerRef.current) {
+          chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+        }
+      }, 100);
+    });
+
     return () => {
       socket.emit("unsubscribe_match", { matchId: match.id });
       
@@ -206,6 +222,7 @@ export default function MatchDetailClient({ initialMatch }: Props) {
       socket.off("typing_stop");
       socket.off("user_joined");
       socket.off("user_left");
+      socket.off("chat_history");
     };
   }, [match.id, userId]);
 
@@ -249,10 +266,31 @@ export default function MatchDetailClient({ initialMatch }: Props) {
   const handleTypingChange = (v: string) => {
     setMessage(v);
     const socket = getSocket();
-    socket.emit("typing_start", { matchId: match.id, userId, username });
-    if (typingTimeout.current) window.clearTimeout(typingTimeout.current);
+    
+    // Handle empty input - stop typing
+    if (!v.trim()) {
+      if (typingTimeout.current) {
+        window.clearTimeout(typingTimeout.current);
+        typingTimeout.current = null;
+        socket.emit("typing_stop", { matchId: match.id, userId });
+      }
+      return;
+    }
+    
+    // Only emit typing_start if not already typing
+    if (typingTimeout.current === null) {
+      socket.emit("typing_start", { matchId: match.id, userId, username });
+    }
+    
+    // Clear existing timeout
+    if (typingTimeout.current) {
+      window.clearTimeout(typingTimeout.current);
+    }
+    
+    // Set new timeout to stop typing
     typingTimeout.current = window.setTimeout(() => {
       socket.emit("typing_stop", { matchId: match.id, userId });
+      typingTimeout.current = null;
     }, 1500);
   };
 
