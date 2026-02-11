@@ -1,80 +1,114 @@
 "use client";
 
-import { useState } from "react";
-import { MatchDetail } from "@/types/match";
-import MatchNotFound from "./not-found";
+import { useEffect, useState } from "react";
+import { getSocket } from "@/lib/socket";
 
+type MatchEvent = {
+  type?: string;
+  player?: string;
+  minute?: number;
+  matchId?: string | number;
+};
+
+type Match = {
+  id: string | number;
+  homeScore: number;
+  awayScore: number;
+  events?: Array<MatchEvent>;
+  statistics?: Record<string, unknown>;
+  status?: string;
+  minute?: number;
+};
 
 type Props = {
-  initialMatch: MatchDetail;
+  initialMatch: Match;
 };
 
 export default function MatchDetailClient({ initialMatch }: Props) {
   const [match, setMatch] = useState(initialMatch);
+  const [connected, setConnected] = useState(false);
 
-  if (!match) {
-    return <MatchNotFound />;
-  }
+  useEffect(() => {
+    const socket = getSocket();
+
+    socket.on("connect", () => setConnected(true));
+    socket.on("disconnect", () => setConnected(false));
+
+    socket.emit("subscribe_match", { matchId: match.id });
+
+    socket.on("score_update", (payload) => {
+      if (payload.matchId !== match.id) return;
+
+      setMatch((prev: Match) => ({
+        ...prev,
+        homeScore: payload.homeScore,
+        awayScore: payload.awayScore,
+      }));
+    });
+
+    socket.on("match_event", (event) => {
+      if (event.matchId !== match.id) return;
+
+      setMatch((prev: Match) => ({
+        ...prev,
+        events: [event, ...(prev.events ?? [])],
+      }));
+    });
+
+    socket.on("stats_update", (payload) => {
+      if (payload.matchId !== match.id) return;
+
+      setMatch((prev: Match) => ({
+        ...prev,
+        statistics: payload.statistics,
+      }));
+    });
+
+    socket.on("status_change", (payload) => {
+      if (payload.matchId !== match.id) return;
+
+      setMatch((prev: Match) => ({
+        ...prev,
+        status: payload.status,
+        minute: payload.minute,
+      }));
+    });
+
+    return () => {
+      socket.emit("unsubscribe_match", { matchId: match.id });
+
+      socket.off("score_update");
+      socket.off("match_event");
+      socket.off("stats_update");
+      socket.off("status_change");
+    };
+  }, [match.id]);
 
   return (
-    <main className="max-w-3xl mx-auto p-4 space-y-4">
-      {/* Score Header */}
-      <section className="text-center">
-        <h1 className="text-lg font-semibold">
-          {match.homeTeam.shortName} {match.homeScore} –{" "}
-          {match.awayScore} {match.awayTeam.shortName}
-        </h1>
-        <p className="text-sm text-gray-500">
-          {match.status} • {match.minute}
-        </p>
-      </section>
+    <div>
+      <p className="text-xs text-gray-500">
+        {connected ? "🟢 Live updates connected" : "🔴 Reconnecting..."}
+      </p>
 
-      {/* Events Timeline */}
-      <section>
-        <h2 className="font-medium mb-2">Match Events</h2>
-        <ul className="space-y-2">
-          {match.events.map((event) => (
-            <li key={event.id} className="text-sm">
-              <strong>{event.minute}</strong> — {event.description}
-            </li>
+      {/* render score, timeline, stats here */}
+      <div>
+        <h2 className="text-lg font-bold">Score</h2>
+          {match.events?.map((event, index) => (
+            <li key={index}>{`${event.type ?? ''}: ${event.player ?? ''} (${event.minute ?? ''})`}</li>
+          ))}
+      </div>
+      <div>
+        <h2 className="text-lg font-bold">Timeline</h2>
+        <ul>
+          {match.events?.map((event, index) => (
+            <li key={index}>{event.type}: {event.player} ({event.minute})</li>
           ))}
         </ul>
-      </section>
-
-      {/* Statistics */}
-      <section>
-        <h2 className="font-medium mb-2">Statistics</h2>
-        <div className="grid grid-cols-2 gap-2 text-sm">
-          <Stat label="Possession" home={match.statistics.possession.home} away={match.statistics.possession.away} suffix="%" />
-          <Stat label="Shots" home={match.statistics.shots.home} away={match.statistics.shots.away} />
-          <Stat label="Shots on Target" home={match.statistics.shotsOnTarget.home} away={match.statistics.shotsOnTarget.away} />
-          <Stat label="Corners" home={match.statistics.corners.home} away={match.statistics.corners.away} />
-          <Stat label="Fouls" home={match.statistics.fouls.home} away={match.statistics.fouls.away} />
-        </div>
-      </section>
-    </main>
-  );
-}
-
-function Stat({
-  label,
-  home,
-  away,
-  suffix = "",
-}: {
-  label: string;
-  home: number;
-  away: number;
-  suffix?: string;
-}) {
-  return (
-    <div className="flex justify-between border-b pb-1">
-      <span className="text-gray-500">{label}</span>
-      <span>
-        {home}
-        {suffix} – {away}
-        {suffix}
-      </span>
+      </div>
+      <div>
+        <h2 className="text-lg font-bold">Statistics</h2>
+        <pre>{JSON.stringify(match.statistics, null, 2)}</pre>
+      </div>
     </div>
   );
 }
