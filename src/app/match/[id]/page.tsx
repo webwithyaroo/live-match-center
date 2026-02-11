@@ -4,6 +4,9 @@ import { notFound } from "next/navigation";
 import { isMatchDetail } from "@/lib/type-guards";
 import { MatchDetail } from "@/types/match";
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // Mock data for development
 const mockMatchDetail: MatchDetail = {
   id: "1",
