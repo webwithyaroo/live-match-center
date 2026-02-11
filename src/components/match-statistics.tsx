@@ -1,5 +1,55 @@
 import { MatchStats } from "@/types/match";
 
+type StatRowProps = {
+  label: string;
+  homeValue: number;
+  awayValue: number;
+  showAsPercentage?: boolean;
+  icon?: string;
+};
+
+function StatRow({ label, homeValue, awayValue, showAsPercentage, icon }: StatRowProps) {
+  const total = homeValue + awayValue || 1; // Avoid division by zero
+  const homePercentage = (homeValue / total) * 100;
+  const awayPercentage = (awayValue / total) * 100;
+
+  return (
+    <div className="mb-4">
+      <div className="flex justify-between items-center mb-2">
+        <div className="flex items-center gap-2">
+          {icon && <span className="text-gray-400" aria-hidden="true">{icon}</span>}
+          <span className="text-sm font-medium text-gray-300">{label}</span>
+        </div>
+      </div>
+      
+      <div className="flex items-center gap-3 mb-1">
+        <span className="text-white font-bold w-10 text-right">
+          {homeValue}{showAsPercentage ? '%' : ''}
+        </span>
+        
+        <div className="flex-1 h-2 bg-zinc-800 rounded-full overflow-hidden">
+          <div className="flex h-full">
+            <div
+              className="bg-orange-500 transition-all duration-300"
+              style={{ width: `${homePercentage}%` }}
+              aria-label={`${homePercentage.toFixed(0)}%`}
+            />
+            <div
+              className="bg-blue-500 transition-all duration-300"
+              style={{ width: `${awayPercentage}%` }}
+              aria-label={`${awayPercentage.toFixed(0)}%`}
+            />
+          </div>
+        </div>
+        
+        <span className="text-white font-bold w-10 text-left">
+          {awayValue}{showAsPercentage ? '%' : ''}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 type MatchStatisticsProps = {
   statistics: MatchStats;
   homeTeamName: string;
@@ -14,58 +64,7 @@ type MatchStatisticsProps = {
  */
 export default function MatchStatistics({
   statistics,
-  homeTeamName,
-  awayTeamName,
 }: MatchStatisticsProps) {
-  type StatRowProps = {
-    label: string;
-    homeValue: number;
-    awayValue: number;
-    showAsPercentage?: boolean;
-    icon?: string;
-  };
-
-  const StatRow = ({ label, homeValue, awayValue, showAsPercentage, icon }: StatRowProps) => {
-    const total = homeValue + awayValue || 1; // Avoid division by zero
-    const homePercentage = (homeValue / total) * 100;
-    const awayPercentage = (awayValue / total) * 100;
-
-    return (
-      <div className="mb-4">
-        <div className="flex justify-between items-center mb-2">
-          <div className="flex items-center gap-2">
-            {icon && <span className="text-gray-400" aria-hidden="true">{icon}</span>}
-            <span className="text-sm font-medium text-gray-300">{label}</span>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-3 mb-1">
-          <span className="text-white font-bold w-10 text-right" aria-label={`${homeTeamName} ${label}`}>
-            {homeValue}{showAsPercentage ? '%' : ''}
-          </span>
-          
-          <div className="flex-1 h-2 bg-zinc-800 rounded-full overflow-hidden">
-            <div className="flex h-full">
-              <div
-                className="bg-orange-500 transition-all duration-300"
-                style={{ width: `${homePercentage}%` }}
-                aria-label={`${homeTeamName} ${homePercentage.toFixed(0)}%`}
-              />
-              <div
-                className="bg-blue-500 transition-all duration-300"
-                style={{ width: `${awayPercentage}%` }}
-                aria-label={`${awayTeamName} ${awayPercentage.toFixed(0)}%`}
-              />
-            </div>
-          </div>
-          
-          <span className="text-white font-bold w-10 text-left" aria-label={`${awayTeamName} ${label}`}>
-            {awayValue}{showAsPercentage ? '%' : ''}
-          </span>
-        </div>
-      </div>
-    );
-  };
 
   return (
     <div 

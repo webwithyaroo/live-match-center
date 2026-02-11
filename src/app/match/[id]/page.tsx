@@ -1,7 +1,6 @@
 import MatchDetailClient from "./match-detail-client";
 import { fetchMatchById } from "@/lib/api";
 import { notFound } from "next/navigation";
-import { MatchDetail } from "@/types/match";
 import { isMatchDetail } from "@/lib/type-guards";
 
 export default async function MatchDetailPage({

@@ -93,8 +93,9 @@ export default function MatchDetailClient({ initialMatch }: Props) {
       // dedupe by tempId or exact signature
       setMessages(prev => {
         // if server returned a tempId we can replace pending
-        if ((msg as any).tempId) {
-          const idx = prev.findIndex(m => m.tempId === (msg as any).tempId);
+        const msgTempId = (msg as { tempId?: string }).tempId;
+        if (msgTempId) {
+          const idx = prev.findIndex(m => m.tempId === msgTempId);
           if (idx !== -1) {
             const next = [...prev];
             next[idx] = { ...msg, pending: false };
@@ -163,27 +164,24 @@ export default function MatchDetailClient({ initialMatch }: Props) {
     setMessages(prev => [...prev, { ...payload, timestamp: new Date().toISOString(), pending: true, tempId }].slice(-200));
 
     // emit with optional ack - if server supports ack, it can confirm/return final message
-    try {
-      socket.emit("send_message", { ...payload, tempId }, (ack: any) => {
-        if (ack && ack.message) {
-          // server returned canonical message
-          setMessages(prev => {
-            const idx = prev.findIndex(m => m.tempId === tempId);
-            if (idx !== -1) {
-              const next = [...prev];
-              next[idx] = { ...ack.message, pending: false };
-              return next.slice(-200);
-            }
-            // otherwise append if not exists
-            const exists = prev.some(m => m.timestamp === ack.message.timestamp && m.userId === ack.message.userId && m.message === ack.message.message);
-            if (exists) return prev;
-            return [...prev, ack.message].slice(-200);
-          });
-        }
-      });
-    } catch (e) {
-      // if emit failed, keep optimistic message but mark it as not sent (still pending)
-    }
+    socket.emit("send_message", { ...payload, tempId }, (ack?: { message?: ChatMessage }) => {
+      if (ack?.message) {
+        // server returned canonical message
+        setMessages(prev => {
+          const idx = prev.findIndex(m => m.tempId === tempId);
+          if (idx !== -1) {
+            const next = [...prev];
+            next[idx] = { ...ack.message!, pending: false };
+            return next.slice(-200);
+          }
+          // otherwise append if not exists
+          const ackMsg = ack.message!;
+          const exists = prev.some(m => m.timestamp === ackMsg.timestamp && m.userId === ackMsg.userId && m.message === ackMsg.message);
+          if (exists) return prev;
+          return [...prev, ackMsg].slice(-200);
+        });
+      }
+    });
 
     setMessage("");
     // stop typing immediately
@@ -335,7 +333,7 @@ export default function MatchDetailClient({ initialMatch }: Props) {
                     <div className={`bg-zinc-900/50 p-4 rounded-lg border ${ev.type && ev.type.includes('VAR') ? 'border-blue-900/30' : 'border-zinc-800'}`}>
                       <p className="text-white font-bold text-lg">{ev.player ?? ev.description ?? '—'}</p>
                       {ev.assistPlayer && <p className="text-zinc-500 text-sm italic">Assist: {ev.assistPlayer}</p>}
-                      {(ev as any).detail && <p className="text-zinc-500 text-sm mt-1">{(ev as any).detail}</p>}
+                      {(ev as { detail?: string }).detail && <p className="text-zinc-500 text-sm mt-1">{(ev as { detail?: string }).detail}</p>}
 
                       {/* Substitution layout if available */}
                       {ev.type && ev.type.includes('SUBSTITUTION') && (

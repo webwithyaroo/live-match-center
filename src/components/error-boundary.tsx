@@ -93,13 +93,13 @@ export default class ErrorBoundary extends Component<
               >
                 Try Again
               </button>
-              <a
-                href="/"
+              <button
+                onClick={() => window.location.href = '/'}
                 className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-semibold rounded-lg transition-colors"
                 aria-label="Go to home page"
               >
-                Go Home
-              </a>
+                Reload Page
+              </button>
             </div>
           </div>
         </div>

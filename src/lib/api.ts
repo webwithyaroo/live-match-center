@@ -31,6 +31,7 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}): Promise
     return response;
   } catch (error) {
     clearTimeout(timeoutId);
+    // Type guard: check if error is an abort error
     if ((error as Error).name === "AbortError") {
       throw new Error("Request timeout - server took too long to respond");
     }
@@ -81,14 +82,14 @@ async function fetchWithRetry<T>(
     try {
       const res = await fetchWithTimeout(url, options);
       return await handleResponse<T>(res);
-    } catch (error) {
-      lastError = error as Error;
+    } catch (err) {
+      lastError = err as Error;
       
       // Don't retry on 4xx errors (client errors)
-      if ((error as { status?: number }).status && 
-          (error as { status?: number }).status! >= 400 && 
-          (error as { status?: number }).status! < 500) {
-        throw error;
+      if ((err as { status?: number }).status && 
+          (err as { status?: number }).status! >= 400 && 
+          (err as { status?: number }).status! < 500) {
+        throw err;
       }
 
       // Don't retry if we've exhausted our attempts
