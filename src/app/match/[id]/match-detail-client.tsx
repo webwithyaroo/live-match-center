@@ -2,20 +2,10 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { getSocket } from "@/lib/socket";
-import { MatchDetail, MatchEvent } from "@/types/match";
+import { MatchDetail, MatchEvent, MatchStatus } from "@/types/match";
 
 type Props = {
   initialMatch: MatchDetail;
-};
-
-// Dark-oriented colors: orange accent
-const eventColors: Record<string, string> = {
-  GOAL: "text-orange-400 font-semibold",
-  YELLOW_CARD: "text-yellow-400",
-  RED_CARD: "text-red-500",
-  FOUL: "text-gray-300",
-  SHOT: "text-blue-300",
-  SUBSTITUTION: "text-purple-300",
 };
 
 type ChatMessage = {
@@ -58,7 +48,6 @@ export default function MatchDetailClient({ initialMatch }: Props) {
     };
 
     socket.on("connect", () => {
-      console.log("🌐 Socket connected:", socket.id);
       setConnected(true);
       subscribe();
     });
@@ -67,7 +56,6 @@ export default function MatchDetailClient({ initialMatch }: Props) {
 
     // Initialize match from server payload
     socket.on("subscribed", ({ currentState }: { currentState: MatchDetail }) => {
-      console.log("✅ Subscribed with currentState", currentState);
       setMatch(currentState);
     });
 
@@ -87,8 +75,8 @@ export default function MatchDetailClient({ initialMatch }: Props) {
     });
 
     // Status change
-    socket.on("status_change", (payload: { status: string; minute: number }) => {
-      setMatch(prev => ({ ...prev, status: payload.status as any, minute: payload.minute }));
+    socket.on("status_change", (payload: { status: MatchStatus; minute: number }) => {
+      setMatch(prev => ({ ...prev, status: payload.status, minute: payload.minute }));
     });
 
     // Chat incoming
@@ -183,7 +171,6 @@ export default function MatchDetailClient({ initialMatch }: Props) {
       });
     } catch (e) {
       // if emit failed, keep optimistic message but mark it as not sent (still pending)
-      console.warn("send_message emit failed", e);
     }
 
     setMessage("");
@@ -201,14 +188,6 @@ export default function MatchDetailClient({ initialMatch }: Props) {
       socket.emit("typing_stop", { matchId: match.id, userId });
     }, 1500);
   };
-
-  // Group events by minute for display
-  const eventsByMinute = (match.events || []).reduce<Record<number, MatchEvent[]>>((acc, ev) => {
-    const minute = typeof ev.minute === "number" ? ev.minute : 0;
-    if (!acc[minute]) acc[minute] = [];
-    acc[minute].push(ev);
-    return acc;
-  }, {});
 
   // create a flat sorted events array for the timeline feed (preserve order)
   const sortedEvents = (match.events || []).slice().sort((a, b) => {

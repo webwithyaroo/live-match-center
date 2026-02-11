@@ -5,19 +5,6 @@ import Link from "next/link";
 import { Match, ScoreUpdatePayload, StatusChangePayload } from "@/types/match";
 import { getSocket } from "@/lib/socket";
 
-import { MatchDetail, MatchEvent } from "@/types/match";
-import {
-  Trophy,
-  Clock,
-  Send,
-  MessageSquare,
-  Activity,
-  ArrowRightLeft,
-  AlertCircle,
-  ChevronDown,
-  User,
-} from "lucide-react";
-
 type Props = {
   initialMatches: Match[];
 };
