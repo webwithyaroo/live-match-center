@@ -1,5 +1,6 @@
 import { MatchStats } from "@/types/match";
 import StatBar from "./ui/stat-bar";
+import { Activity, Target, Flag, AlertTriangle, Square } from "lucide-react";
 
 type MatchStatisticsProps = {
   statistics: MatchStats;
@@ -17,77 +18,64 @@ export default function MatchStatistics({
 
   return (
     <div 
-      className="bg-zinc-900 border border-zinc-800 rounded-lg p-4"
+      className="bg-zinc-900 border border-zinc-800 rounded-lg p-6"
       role="region"
       aria-label="Match Statistics"
     >
-      <h3 className="font-semibold text-lg mb-4 text-white flex items-center gap-2">
-        <svg 
-          className="w-5 h-5 text-orange-500" 
-          fill="none" 
-          viewBox="0 0 24 24" 
-          stroke="currentColor"
-          aria-hidden="true"
-        >
-          <path 
-            strokeLinecap="round" 
-            strokeLinejoin="round" 
-            strokeWidth={2} 
-            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" 
-          />
-        </svg>
-        Statistics
+      <h3 className="font-semibold text-xl mb-6 text-white flex items-center gap-2">
+        <Activity className="w-6 h-6 text-orange-500" aria-hidden="true" />
+        Match Statistics
       </h3>
 
-      <div className="space-y-1">
+      <div className="space-y-5">
         <StatBar
           label="Possession"
           homeValue={statistics.possession.home}
           awayValue={statistics.possession.away}
           showAsPercentage
-          icon="⚽"
+          icon={<Activity className="w-4 h-4" />}
         />
         
         <StatBar
           label="Shots"
           homeValue={statistics.shots.home}
           awayValue={statistics.shots.away}
-          icon="🎯"
+          icon={<Target className="w-4 h-4" />}
         />
         
         <StatBar
           label="Shots on Target"
           homeValue={statistics.shotsOnTarget.home}
           awayValue={statistics.shotsOnTarget.away}
-          icon="🎯"
+          icon={<Target className="w-4 h-4" />}
         />
         
         <StatBar
           label="Corners"
           homeValue={statistics.corners.home}
           awayValue={statistics.corners.away}
-          icon="🚩"
+          icon={<Flag className="w-4 h-4" />}
         />
         
         <StatBar
           label="Fouls"
           homeValue={statistics.fouls.home}
           awayValue={statistics.fouls.away}
-          icon="⚠️"
+          icon={<AlertTriangle className="w-4 h-4" />}
         />
         
         <StatBar
           label="Yellow Cards"
           homeValue={statistics.yellowCards.home}
           awayValue={statistics.yellowCards.away}
-          icon="🟨"
+          icon={<Square className="w-4 h-4 text-yellow-400" fill="currentColor" />}
         />
         
         <StatBar
           label="Red Cards"
           homeValue={statistics.redCards.home}
           awayValue={statistics.redCards.away}
-          icon="🟥"
+          icon={<Square className="w-4 h-4 text-red-500" fill="currentColor" />}
         />
       </div>
     </div>
